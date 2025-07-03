@@ -3,7 +3,7 @@
  * Plugin Name: ENNU Life - Health Platform
  * Plugin URI: https://ennulife.com/
  * Description: Comprehensive health assessment, booking, and e-commerce platform for modern healthcare practices.
- * Version: 22.0
+ * Version: 22.1
  * Author: ENNU Life Team
  * Author URI: https://ennulife.com/
  * License: GPL v2 or later
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants
 if ( ! defined( 'ENNU_LIFE_VERSION' ) ) {
-    define( 'ENNU_LIFE_VERSION', '22.0' );
+    define( 'ENNU_LIFE_VERSION', '22.1' );
 }
 if ( ! defined( 'ENNU_LIFE_PLUGIN_FILE' ) ) {
     define( 'ENNU_LIFE_PLUGIN_FILE', __FILE__ );

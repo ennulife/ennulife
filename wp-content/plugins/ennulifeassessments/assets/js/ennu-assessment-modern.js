@@ -1024,43 +1024,168 @@
         
         // Collect contact form data
         collectContactFormData: function() {
+            console.log('ENNU: Starting comprehensive data collection...');
+            
+            var fieldsCollected = 0;
+            var fieldsSkipped = 0;
+            
+            // Method 1: Collect from contact form specifically
             var $contactForm = $('.contact-info-form');
             if ($contactForm.length > 0) {
-                console.log('Collecting contact form data...');
+                console.log('ENNU: Found contact form, collecting fields...');
                 
-                // Collect all contact form fields
-                $contactForm.find('input').each((index, element) => {
+                $contactForm.find('input, select, textarea').each((index, element) => {
                     var $field = $(element);
                     var fieldName = $field.attr('name');
-                    var fieldValue = $field.val().trim();
+                    var fieldValue = $field.val();
+                    
+                    if (fieldName && fieldValue && fieldValue.trim() !== '') {
+                        this.assessmentData[fieldName] = fieldValue.trim();
+                        fieldsCollected++;
+                        console.log('ENNU: Collected contact field:', fieldName, '=', fieldValue.trim());
+                    } else if (fieldName) {
+                        fieldsSkipped++;
+                        console.log('ENNU: Skipped empty contact field:', fieldName);
+                    }
+                });
+            }
+            
+            // Method 2: Collect from all assessment steps (comprehensive)
+            $('.ennu-question-step').each(function(stepIndex) {
+                var $step = $(this);
+                var stepNumber = stepIndex + 1;
+                
+                // Collect radio button selections
+                $step.find('input[type="radio"]:checked').each(function() {
+                    var fieldName = $(this).attr('name');
+                    var fieldValue = $(this).val();
                     
                     if (fieldName && fieldValue) {
-                        this.assessmentData[fieldName] = fieldValue;
-                        console.log('Collected field:', fieldName, '=', fieldValue);
+                        ENNUModernAssessment.assessmentData[fieldName] = fieldValue;
+                        fieldsCollected++;
+                        console.log('ENNU: Collected radio field (step ' + stepNumber + '):', fieldName, '=', fieldValue);
                     }
                 });
                 
-                // Also collect DOB data if present
-                var $dobMonth = $('.dob-month');
-                var $dobDay = $('.dob-day');
-                var $dobYear = $('.dob-year');
-                
-                if ($dobMonth.length && $dobDay.length && $dobYear.length) {
-                    var month = $dobMonth.val();
-                    var day = $dobDay.val();
-                    var year = $dobYear.val();
+                // Collect text inputs
+                $step.find('input[type="text"], input[type="email"], input[type="tel"]').each(function() {
+                    var fieldName = $(this).attr('name');
+                    var fieldValue = $(this).val();
                     
-                    if (month && day && year) {
-                        this.assessmentData['date_of_birth_month'] = month;
-                        this.assessmentData['date_of_birth_day'] = day;
-                        this.assessmentData['date_of_birth_year'] = year;
-                        this.assessmentData['date_of_birth'] = month + '/' + day + '/' + year;
-                        console.log('Collected DOB:', month + '/' + day + '/' + year);
+                    if (fieldName && fieldValue && fieldValue.trim() !== '') {
+                        ENNUModernAssessment.assessmentData[fieldName] = fieldValue.trim();
+                        fieldsCollected++;
+                        console.log('ENNU: Collected text field (step ' + stepNumber + '):', fieldName, '=', fieldValue.trim());
+                    } else if (fieldName) {
+                        fieldsSkipped++;
+                        console.log('ENNU: Skipped empty text field (step ' + stepNumber + '):', fieldName);
                     }
+                });
+                
+                // Collect select dropdowns
+                $step.find('select').each(function() {
+                    var fieldName = $(this).attr('name');
+                    var fieldValue = $(this).val();
+                    
+                    if (fieldName && fieldValue && fieldValue !== '') {
+                        ENNUModernAssessment.assessmentData[fieldName] = fieldValue;
+                        fieldsCollected++;
+                        console.log('ENNU: Collected select field (step ' + stepNumber + '):', fieldName, '=', fieldValue);
+                    } else if (fieldName) {
+                        fieldsSkipped++;
+                        console.log('ENNU: Skipped empty select field (step ' + stepNumber + '):', fieldName);
+                    }
+                });
+                
+                // Collect checkboxes
+                $step.find('input[type="checkbox"]:checked').each(function() {
+                    var fieldName = $(this).attr('name');
+                    var fieldValue = $(this).val();
+                    
+                    if (fieldName && fieldValue) {
+                        // Handle multiple checkboxes with same name
+                        if (ENNUModernAssessment.assessmentData[fieldName]) {
+                            if (Array.isArray(ENNUModernAssessment.assessmentData[fieldName])) {
+                                ENNUModernAssessment.assessmentData[fieldName].push(fieldValue);
+                            } else {
+                                ENNUModernAssessment.assessmentData[fieldName] = [ENNUModernAssessment.assessmentData[fieldName], fieldValue];
+                            }
+                        } else {
+                            ENNUModernAssessment.assessmentData[fieldName] = fieldValue;
+                        }
+                        fieldsCollected++;
+                        console.log('ENNU: Collected checkbox field (step ' + stepNumber + '):', fieldName, '=', fieldValue);
+                    }
+                });
+            });
+            
+            // Method 3: Special handling for DOB fields
+            var $dobMonth = $('.dob-month, select[name*="month"], select[name*="dob_month"]');
+            var $dobDay = $('.dob-day, select[name*="day"], select[name*="dob_day"]');
+            var $dobYear = $('.dob-year, select[name*="year"], select[name*="dob_year"]');
+            
+            if ($dobMonth.length && $dobDay.length && $dobYear.length) {
+                var month = $dobMonth.val();
+                var day = $dobDay.val();
+                var year = $dobYear.val();
+                
+                if (month && day && year) {
+                    this.assessmentData['date_of_birth_month'] = month;
+                    this.assessmentData['date_of_birth_day'] = day;
+                    this.assessmentData['date_of_birth_year'] = year;
+                    this.assessmentData['date_of_birth'] = month + '/' + day + '/' + year;
+                    fieldsCollected += 4;
+                    console.log('ENNU: Collected DOB fields:', month + '/' + day + '/' + year);
+                }
+            }
+            
+            // Method 4: Fallback - collect any remaining form fields
+            $('input, select, textarea').each(function() {
+                var $field = $(this);
+                var fieldName = $field.attr('name');
+                var fieldValue = $field.val();
+                var fieldType = $field.attr('type');
+                
+                // Skip if already collected or if it's a system field
+                if (!fieldName || 
+                    ENNUModernAssessment.assessmentData.hasOwnProperty(fieldName) ||
+                    fieldName === 'action' ||
+                    fieldName === 'nonce' ||
+                    (fieldType === 'radio' && !$field.is(':checked')) ||
+                    (fieldType === 'checkbox' && !$field.is(':checked'))) {
+                    return;
                 }
                 
-                console.log('Final assessment data:', this.assessmentData);
+                if (fieldValue && fieldValue.trim() !== '') {
+                    ENNUModernAssessment.assessmentData[fieldName] = fieldValue.trim();
+                    fieldsCollected++;
+                    console.log('ENNU: Collected fallback field:', fieldName, '=', fieldValue.trim());
+                }
+            });
+            
+            console.log('ENNU: Data collection complete!');
+            console.log('ENNU: Fields collected:', fieldsCollected);
+            console.log('ENNU: Fields skipped (empty):', fieldsSkipped);
+            console.log('ENNU: Total assessment data fields:', Object.keys(this.assessmentData).length);
+            console.log('ENNU: Final assessment data:', this.assessmentData);
+            
+            // Validate we have minimum required data
+            var requiredFields = ['first_name', 'last_name', 'email'];
+            var missingFields = [];
+            
+            requiredFields.forEach(function(field) {
+                if (!ENNUModernAssessment.assessmentData[field] || ENNUModernAssessment.assessmentData[field].trim() === '') {
+                    missingFields.push(field);
+                }
+            });
+            
+            if (missingFields.length > 0) {
+                console.warn('ENNU: Missing required fields:', missingFields);
+            } else {
+                console.log('ENNU: All required fields present');
             }
+            
+            return fieldsCollected;
         },
         
         // Show error message

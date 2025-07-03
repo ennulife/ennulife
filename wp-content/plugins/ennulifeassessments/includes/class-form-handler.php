@@ -114,27 +114,57 @@ class ENNU_Life_Form_Handler {
             
             // Save data with assessment-specific prefix
             $saved_fields = 0;
+            $failed_fields = array();
+            
             foreach ($form_data as $key => $value) {
+                // Skip empty values and system fields
+                if (empty($value) || in_array($key, array('action', 'nonce', 'assessment_type'))) {
+                    continue;
+                }
+                
+                // Handle array values (multiple selections)
                 if (is_array($value)) {
                     $value = implode(', ', $value);
                 }
                 
-                $meta_key = $assessment_type . '_' . $key;
-                $result = update_user_meta($user_id, $meta_key, sanitize_text_field($value));
+                // Create standardized meta key with 'ennu_' prefix
+                $clean_key = sanitize_key($key);
+                $clean_assessment_type = str_replace('-', '_', $assessment_type);
+                $meta_key = 'ennu_' . $clean_assessment_type . '_' . $clean_key;
+                $sanitized_value = sanitize_text_field($value);
+                
+                // Save the field value
+                $result = update_user_meta($user_id, $meta_key, $sanitized_value);
                 
                 if ($result !== false) {
                     $saved_fields++;
-                    error_log('ENNU: Saved field: ' . $meta_key . ' = ' . $value);
+                    error_log('ENNU: Saved field: ' . $meta_key . ' = ' . $sanitized_value);
+                    
+                    // Also save metadata for admin display
+                    update_user_meta($user_id, $meta_key . '_date', current_time('mysql'));
+                    $field_label = ucwords(str_replace('_', ' ', $clean_key));
+                    update_user_meta($user_id, $meta_key . '_label', $field_label);
                 } else {
-                    error_log('ENNU WARNING: Failed to save field: ' . $meta_key);
+                    $failed_fields[] = $meta_key;
+                    error_log('ENNU WARNING: Failed to save field: ' . $meta_key . ' = ' . $sanitized_value);
                 }
             }
             
-            error_log('ENNU: Successfully saved ' . $saved_fields . ' fields for user ' . $user_id);
+            // Save completion status and metadata
+            $completion_meta_key = 'ennu_' . str_replace('-', '_', $assessment_type) . '_completion_status';
+            update_user_meta($user_id, $completion_meta_key, 'completed');
+            update_user_meta($user_id, $completion_meta_key . '_date', current_time('mysql'));
+            update_user_meta($user_id, 'ennu_' . str_replace('-', '_', $assessment_type) . '_submission_date', current_time('mysql'));
+            update_user_meta($user_id, 'ennu_' . str_replace('-', '_', $assessment_type) . '_version', ENNU_LIFE_VERSION);
             
-            // Save submission timestamp
-            update_user_meta($user_id, $assessment_type . '_submission_date', current_time('mysql'));
-            update_user_meta($user_id, $assessment_type . '_version', '21.7');
+            error_log('ENNU: Successfully saved ' . $saved_fields . ' fields for user ' . $user_id . ' (assessment: ' . $assessment_type . ')');
+            
+            if (!empty($failed_fields)) {
+                error_log('ENNU WARNING: Failed to save ' . count($failed_fields) . ' fields: ' . implode(', ', $failed_fields));
+            }
+            
+            // Verify data was saved by checking what's in the database
+            $this->verify_user_meta_save($user_id, $assessment_type);
             
             // Get redirect URL
             $redirect_url = $this->get_assessment_results_url($assessment_type);
@@ -349,6 +379,39 @@ This is an automated message. Please do not reply to this email.
         }
         
         return $email_sent;
+    }
+    
+    /**
+     * Debug function to verify user meta is being saved
+     */
+    private function verify_user_meta_save($user_id, $assessment_type) {
+        error_log('ENNU: Verifying user meta for user ' . $user_id . ', assessment: ' . $assessment_type);
+        
+        $all_meta = get_user_meta($user_id);
+        $assessment_meta = array();
+        $clean_assessment_type = str_replace('-', '_', $assessment_type);
+        
+        foreach ($all_meta as $key => $value) {
+            if (strpos($key, 'ennu_' . $clean_assessment_type) === 0) {
+                $assessment_meta[$key] = $value;
+            }
+        }
+        
+        error_log('ENNU: Found ' . count($assessment_meta) . ' assessment meta fields for ' . $assessment_type . ':');
+        foreach ($assessment_meta as $key => $value) {
+            $val = is_array($value) ? $value[0] : $value;
+            error_log('ENNU: ' . $key . ' = ' . $val);
+        }
+        
+        // Also check if user exists and has basic info
+        $user = get_userdata($user_id);
+        if ($user) {
+            error_log('ENNU: User verified - ID: ' . $user_id . ', Email: ' . $user->user_email . ', Name: ' . $user->first_name . ' ' . $user->last_name);
+        } else {
+            error_log('ENNU ERROR: User ID ' . $user_id . ' not found in database!');
+        }
+        
+        return $assessment_meta;
     }
     
     /**
