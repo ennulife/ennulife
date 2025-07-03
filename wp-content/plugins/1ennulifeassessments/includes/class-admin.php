@@ -206,13 +206,13 @@ class ENNU_Admin {
         
         <table class="form-table">
             <?php
-            // Get all assessment types - only the 5 core assessments
+            // Get all assessment types
             $assessment_types = array(
                 'hair_assessment' => 'Hair Assessment',
+                'hair_restoration_assessment' => 'Hair Restoration Assessment',
                 'ed_treatment_assessment' => 'ED Treatment Assessment',
                 'weight_loss_assessment' => 'Weight Loss Assessment',
-                'health_assessment' => 'Health Assessment',
-                'skin_assessment' => 'Skin Assessment'
+                'health_assessment' => 'Health Assessment'
             );
             
             foreach ($assessment_types as $type => $label) {

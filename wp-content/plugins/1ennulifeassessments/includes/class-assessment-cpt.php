@@ -517,8 +517,10 @@ class ENNU_Assessment_CPT {
      * Handle dual saving - save to both user profile and CPT
      */
     public function handle_dual_save() {
-        // Security check removed for compatibility
-        error_log('ENNU: CPT dual save handler called');
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'ennu_ajax_nonce')) {
+            wp_die('Security check failed');
+        }
         
         $assessment_type = sanitize_text_field($_POST['assessment_type']);
         

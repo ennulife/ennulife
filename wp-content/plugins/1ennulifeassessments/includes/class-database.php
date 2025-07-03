@@ -25,7 +25,7 @@ class ENNU_Life_Database {
     /**
      * Enhanced save assessment with individual field storage
      */
-    public function save_assessment($assessment_type, $form_data, $scores = null, $user_id = null) {
+    public function save_assessment($assessment_type, $form_data, $user_id = null) {
         global $wpdb;
         
         try {
@@ -383,27 +383,14 @@ class ENNU_Life_Database {
     /**
      * Update user assessment meta
      */
-    private function update_user_assessment_meta($user_id, $assessment_type, $form_data, $results, $scores = null) {
-        $meta_key = 'ennu_latest_' . str_replace('-', '_', $assessment_type);
+    private function update_user_assessment_meta($user_id, $assessment_type, $form_data, $results) {
+        $meta_key = 'ennu_assessment_' . str_replace('-', '_', $assessment_type);
         
         // Save complete assessment data
         update_user_meta($user_id, $meta_key, json_encode($form_data));
         update_user_meta($user_id, $meta_key . '_date', current_time('mysql'));
-        
-        // Save the actual calculated score if available
-        if ($scores && isset($scores['overall_score'])) {
-            update_user_meta($user_id, $meta_key . '_score', $scores['overall_score']);
-        } else {
-            update_user_meta($user_id, $meta_key . '_score', $results['score'] ?? 0);
-        }
-        
+        update_user_meta($user_id, $meta_key . '_score', $results['score'] ?? 0);
         update_user_meta($user_id, $meta_key . '_status', 'completed');
-        
-        // Save assessment-specific score with unique field name
-        $score_field_name = str_replace('-', '_', $assessment_type) . '_score';
-        if ($scores && isset($scores['overall_score'])) {
-            update_user_meta($user_id, $score_field_name, $scores['overall_score']);
-        }
         
         // Update overall user health metrics
         $this->update_user_health_metrics($user_id, $assessment_type, $form_data, $results);

@@ -3,7 +3,7 @@
  * Plugin Name: ENNU Life - Health Platform
  * Plugin URI: https://ennulife.com/
  * Description: Comprehensive health assessment, booking, and e-commerce platform for modern healthcare practices.
- * Version: 22.0
+ * Version: 15.4
  * Author: ENNU Life Team
  * Author URI: https://ennulife.com/
  * License: GPL v2 or later
@@ -16,7 +16,7 @@
  * Network: true
  * 
  * @package ENNU_Life
- * @version 21.0
+ * @version 15.1
  * @author ENNU Life Development Team
  * @since 15.0
  */
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants
 if ( ! defined( 'ENNU_LIFE_VERSION' ) ) {
-    define( 'ENNU_LIFE_VERSION', '22.0' );
+    define( 'ENNU_LIFE_VERSION', '15.4' );
 }
 if ( ! defined( 'ENNU_LIFE_PLUGIN_FILE' ) ) {
     define( 'ENNU_LIFE_PLUGIN_FILE', __FILE__ );
@@ -193,7 +193,6 @@ final class ENNU_Life_Plugin {
         $includes = array(
             'includes/class-debug-logger.php',
             'includes/class-database.php',
-            'includes/class-scoring-system.php',
             'includes/class-form-handler.php',
             'includes/class-admin.php',
             'includes/class-assessment-shortcodes.php',
@@ -316,9 +315,6 @@ final class ENNU_Life_Plugin {
             
             // Set default options
             $instance->set_default_options();
-            
-            // Clean up dummy assessment fields from v15.6
-            $instance->cleanup_dummy_assessment_fields();
             
             // Flush rewrite rules
             flush_rewrite_rules();
@@ -635,8 +631,10 @@ final class ENNU_Life_Plugin {
      * Handle AJAX form submission
      */
     public function ajax_form_submit() {
-        // Security check removed for assessment compatibility
-        error_log('ENNU: Main plugin AJAX handler called - delegating to form handler');
+        // Verify nonce
+        if ( ! $this->verify_ajax_nonce() ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Security check failed.', 'ennu-life' ) ) );
+        }
         
         // Delegate to form handler
         if ( isset( $this->components['form_handler'] ) ) {
@@ -650,8 +648,10 @@ final class ENNU_Life_Plugin {
      * Handle AJAX appointment booking
      */
     public function ajax_book_appointment() {
-        // Security check removed for compatibility
-        error_log('ENNU: Appointment booking AJAX handler called');
+        // Verify nonce
+        if ( ! $this->verify_ajax_nonce() ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Security check failed.', 'ennu-life' ) ) );
+        }
         
         // Sanitize input
         $appointment_data = $this->sanitize_appointment_data( $_POST );
@@ -670,8 +670,10 @@ final class ENNU_Life_Plugin {
      * Handle AJAX membership calculation
      */
     public function ajax_calculate_membership() {
-        // Security check removed for compatibility
-        error_log('ENNU: Membership calculation AJAX handler called');
+        // Verify nonce
+        if ( ! $this->verify_ajax_nonce() ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Security check failed.', 'ennu-life' ) ) );
+        }
         
         // Sanitize input
         $calculation_data = $this->sanitize_calculation_data( $_POST );
@@ -758,9 +760,12 @@ final class ENNU_Life_Plugin {
         
         $assessment_types = array(
             'hair_assessment' => esc_html__( 'Hair Assessment', 'ennu-life' ),
+            'hair_restoration_assessment' => esc_html__( 'Hair Restoration Assessment', 'ennu-life' ),
             'ed_treatment_assessment' => esc_html__( 'ED Treatment Assessment', 'ennu-life' ),
             'weight_loss_assessment' => esc_html__( 'Weight Loss Assessment', 'ennu-life' ),
+            'weight_loss_quiz' => esc_html__( 'Weight Loss Quiz', 'ennu-life' ),
             'health_assessment' => esc_html__( 'Health Assessment', 'ennu-life' ),
+            'hormone_assessment' => esc_html__( 'Hormone Assessment', 'ennu-life' ),
             'skin_assessment' => esc_html__( 'Skin Assessment', 'ennu-life' )
         );
         
@@ -770,10 +775,9 @@ final class ENNU_Life_Plugin {
             $latest_key = 'ennu_latest_' . $type;
             $assessment_data = get_user_meta( $user->ID, $latest_key, true );
             
-            $this->display_assessment_fields( $user->ID, $type, $label, $assessment_data );
-            
             if ( ! empty( $assessment_data ) ) {
                 $has_data = true;
+                $this->display_assessment_fields( $user->ID, $type, $label, $assessment_data );
             }
         }
         
@@ -786,25 +790,24 @@ final class ENNU_Life_Plugin {
      * Display individual assessment fields
      */
     private function display_assessment_fields( $user_id, $assessment_type, $assessment_label, $assessment_data ) {
-        $assessment_data_present = is_array( $assessment_data ) && isset( $assessment_data["data"] );
-        $actual_assessment_data = $assessment_data_present ? $assessment_data["data"] : array();
+        if ( ! is_array( $assessment_data ) || ! isset( $assessment_data['data'] ) ) {
+            return;
+        }
         
         ?>
         <table class="form-table">
             <tr>
                 <th colspan="2">
                     <h4><?php echo esc_html( $assessment_label ); ?></h4>
-                    <?php if ( $assessment_data_present && isset( $assessment_data["date"] ) ) : ?>
+                    <?php if ( isset( $assessment_data['date'] ) ) : ?>
                         <p class="description">
                             <?php 
                             printf( 
-                                esc_html__( "Completed: %s", "ennu-life" ),
-                                esc_html( date_i18n( get_option( "date_format" ) . " " . get_option( "time_format" ), strtotime( $assessment_data["date"] ) ) )
+                                esc_html__( 'Completed: %s', 'ennu-life' ),
+                                esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $assessment_data['date'] ) ) )
                             ); 
                             ?>
                         </p>
-                    <?php else : ?>
-                        <p class="description"><em><?php esc_html_e( "No data recorded for this assessment.", "ennu-life" ); ?></em></p>
                     <?php endif; ?>
                 </th>
             </tr>
@@ -812,14 +815,14 @@ final class ENNU_Life_Plugin {
             
             $field_labels = $this->get_assessment_field_labels( $assessment_type );
             
-            foreach ( $field_labels as $field_key => $label ) {
-                $field_value = isset( $actual_assessment_data[ $field_key ] ) ? $actual_assessment_data[ $field_key ] : "";
+            foreach ( $assessment_data['data'] as $field_key => $field_value ) {
+                $label = isset( $field_labels[ $field_key ] ) ? $field_labels[ $field_key ] : ucwords( str_replace( '_', ' ', $field_key ) );
                 ?>
                 <tr>
-                    <th><label><?php echo esc_html( $label ); ?> (ID: <?php echo esc_html( $field_key ); ?>)</label></th>
+                    <th><label><?php echo esc_html( $label ); ?></label></th>
                     <td>
                         <input type="text" value="<?php echo esc_attr( $field_value ); ?>" class="regular-text" readonly />
-                        <p class="description"><?php esc_html_e( "Assessment response (read-only)", "ennu-life" ); ?></p>
+                        <p class="description"><?php esc_html_e( 'Assessment response (read-only)', 'ennu-life' ); ?></p>
                     </td>
                 </tr>
                 <?php
@@ -834,114 +837,48 @@ final class ENNU_Life_Plugin {
      * Get assessment field labels
      */
     private function get_assessment_field_labels( $assessment_type ) {
-        // Standard WordPress and WooCommerce fields
         $labels = array(
-            'first_name' => esc_html__( 'First Name', 'ennu-life' ),
-            'last_name' => esc_html__( 'Last Name', 'ennu-life' ),
+            'name' => esc_html__( 'Full Name', 'ennu-life' ),
             'email' => esc_html__( 'Email Address', 'ennu-life' ),
-            'billing_phone' => esc_html__( 'Phone Number', 'ennu-life' ),
-            'date_of_birth' => esc_html__( 'Date of Birth', 'ennu-life' ),
-            'age' => esc_html__( 'Current Age', 'ennu-life' )
+            'mobile' => esc_html__( 'Mobile Phone', 'ennu-life' )
         );
         
         switch ( $assessment_type ) {
             case 'hair_assessment':
                 $labels = array_merge( $labels, array(
-                    'hair_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'hair_concern_type' => esc_html__( 'Hair Concern Type', 'ennu-life' ),
-                    'hair_loss_duration' => esc_html__( 'Duration of Hair Loss', 'ennu-life' ),
-                    'hair_loss_rate' => esc_html__( 'Rate of Hair Loss', 'ennu-life' ),
-                    'hair_family_history' => esc_html__( 'Family History of Hair Loss', 'ennu-life' ),
-                    'hair_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'hair_diet_quality' => esc_html__( 'Diet Quality', 'ennu-life' ),
-                    'hair_previous_treatments' => esc_html__( 'Previous Hair Treatments', 'ennu-life' ),
-                    'hair_treatment_goals' => esc_html__( 'Hair Treatment Goals', 'ennu-life' )
+                    'question_1' => esc_html__( 'Age Range', 'ennu-life' ),
+                    'question_2' => esc_html__( 'Gender', 'ennu-life' ),
+                    'question_3' => esc_html__( 'Hair Concern Type', 'ennu-life' ),
+                    'question_4' => esc_html__( 'Duration', 'ennu-life' ),
+                    'question_5' => esc_html__( 'Rate of Loss', 'ennu-life' ),
+                    'question_6' => esc_html__( 'Family History', 'ennu-life' ),
+                    'question_7' => esc_html__( 'Stress Level', 'ennu-life' ),
+                    'question_8' => esc_html__( 'Diet Quality', 'ennu-life' ),
+                    'question_9' => esc_html__( 'Previous Treatments', 'ennu-life' ),
+                    'question_10' => esc_html__( 'Treatment Goals', 'ennu-life' )
                 ) );
                 break;
                 
             case 'ed_treatment_assessment':
                 $labels = array_merge( $labels, array(
-                    'ed_relationship_status' => esc_html__( 'Relationship Status', 'ennu-life' ),
-                    'ed_severity_level' => esc_html__( 'ED Severity Level', 'ennu-life' ),
-                    'ed_symptom_duration' => esc_html__( 'Duration of Symptoms', 'ennu-life' ),
-                    'ed_health_conditions' => esc_html__( 'Related Health Conditions', 'ennu-life' ),
-                    'ed_previous_treatments' => esc_html__( 'Previous ED Treatments', 'ennu-life' ),
-                    'ed_smoking_status' => esc_html__( 'Smoking Status', 'ennu-life' ),
-                    'ed_exercise_frequency' => esc_html__( 'Exercise Frequency', 'ennu-life' ),
-                    'ed_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'ed_treatment_goals' => esc_html__( 'ED Treatment Goals', 'ennu-life' )
+                    'question_1' => esc_html__( 'Age Range', 'ennu-life' ),
+                    'question_2' => esc_html__( 'Relationship Status', 'ennu-life' ),
+                    'question_3' => esc_html__( 'ED Severity', 'ennu-life' ),
+                    'question_4' => esc_html__( 'Duration of Symptoms', 'ennu-life' ),
+                    'question_5' => esc_html__( 'Health Conditions', 'ennu-life' ),
+                    'question_6' => esc_html__( 'Previous Treatments', 'ennu-life' ),
+                    'question_7' => esc_html__( 'Smoking Status', 'ennu-life' ),
+                    'question_8' => esc_html__( 'Exercise Frequency', 'ennu-life' ),
+                    'question_9' => esc_html__( 'Stress Level', 'ennu-life' ),
+                    'question_10' => esc_html__( 'Treatment Goals', 'ennu-life' )
                 ) );
                 break;
                 
-            case 'weight_loss_assessment':
-                $labels = array_merge( $labels, array(
-                    'weight_current_weight' => esc_html__( 'Current Weight', 'ennu-life' ),
-                    'weight_target_weight' => esc_html__( 'Target Weight', 'ennu-life' ),
-                    'weight_height' => esc_html__( 'Height', 'ennu-life' ),
-                    'weight_dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'weight_exercise_routine' => esc_html__( 'Exercise Routine', 'ennu-life' ),
-                    'weight_medical_conditions' => esc_html__( 'Medical Conditions', 'ennu-life' ),
-                    'weight_medications' => esc_html__( 'Current Medications', 'ennu-life' ),
-                    'weight_loss_history' => esc_html__( 'Weight Loss History', 'ennu-life' ),
-                    'weight_loss_goals' => esc_html__( 'Weight Loss Goals', 'ennu-life' )
-                ) );
-                break;
-                
-            case 'health_assessment':
-                $labels = array_merge( $labels, array(
-                    'health_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'health_current_concerns' => esc_html__( 'Current Health Concerns', 'ennu-life' ),
-                    'health_medical_history' => esc_html__( 'Medical History', 'ennu-life' ),
-                    'health_medications' => esc_html__( 'Current Medications', 'ennu-life' ),
-                    'health_dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'health_exercise_routine' => esc_html__( 'Exercise Routine', 'ennu-life' ),
-                    'health_sleep_quality' => esc_html__( 'Sleep Quality', 'ennu-life' ),
-                    'health_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'health_wellness_goals' => esc_html__( 'Health & Wellness Goals', 'ennu-life' )
-                ) );
-                break;
-                
-            case 'skin_assessment':
-                $labels = array_merge( $labels, array(
-                    'skin_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'skin_type' => esc_html__( 'Skin Type', 'ennu-life' ),
-                    'skin_primary_concern' => esc_html__( 'Primary Skin Concern', 'ennu-life' ),
-                    'skin_sun_exposure' => esc_html__( 'Sun Exposure Level', 'ennu-life' ),
-                    'skin_current_routine' => esc_html__( 'Current Skincare Routine', 'ennu-life' ),
-                    'skin_budget_range' => esc_html__( 'Skincare Budget Range', 'ennu-life' ),
-                    'skin_treatment_goals' => esc_html__( 'Skincare Treatment Goals', 'ennu-life' )
-                ) );
-                break;
-                
-            // Legacy support for old assessment types
-            case 'weight_loss_quiz':
-                $labels = array_merge( $labels, array(
-                    'age_range' => esc_html__( 'Age Range', 'ennu-life' ),
-                    'current_weight' => esc_html__( 'Current Weight', 'ennu-life' ),
-                    'target_weight' => esc_html__( 'Target Weight', 'ennu-life' ),
-                    'height' => esc_html__( 'Height', 'ennu-life' ),
-                    'dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'exercise_routine' => esc_html__( 'Exercise Routine', 'ennu-life' ),
-                    'medical_conditions' => esc_html__( 'Medical Conditions', 'ennu-life' ),
-                    'medications' => esc_html__( 'Medications', 'ennu-life' ),
-                    'weight_loss_history' => esc_html__( 'Weight Loss History', 'ennu-life' ),
-                    'weight_loss_goals' => esc_html__( 'Weight Loss Goals', 'ennu-life' )
-                ) );
-                break;
-                
-            case 'hormone_assessment':
-                $labels = array_merge( $labels, array(
-                    'hormone_age_range' => esc_html__( 'Age Range', 'ennu-life' ),
-                    'hormone_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'hormone_concern_type' => esc_html__( 'Hormone Concern Type', 'ennu-life' ),
-                    'hormone_symptoms' => esc_html__( 'Hormone-Related Symptoms', 'ennu-life' ),
-                    'hormone_medical_history' => esc_html__( 'Medical History', 'ennu-life' ),
-                    'hormone_medications' => esc_html__( 'Current Medications', 'ennu-life' ),
-                    'hormone_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'hormone_sleep_quality' => esc_html__( 'Sleep Quality', 'ennu-life' ),
-                    'hormone_dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'hormone_treatment_goals' => esc_html__( 'Hormone Treatment Goals', 'ennu-life' )
-                ) );
+            // Add more assessment types as needed
+            default:
+                for ( $i = 1; $i <= 15; $i++ ) {
+                    $labels[ 'question_' . $i ] = sprintf( esc_html__( 'Question %d', 'ennu-life' ), $i );
+                }
                 break;
         }
         
@@ -958,120 +895,6 @@ final class ENNU_Life_Plugin {
         
         // Assessment data is read-only in user profiles
         // Data should be updated through assessment forms only
-    }
-    
-    /**
-     * Create dummy assessment fields for WP Fusion detection (v15.6)
-     * This ensures WP Fusion can detect all possible assessment fields
-     * Will be removed in v15.7
-     */
-    private function create_dummy_assessment_fields() {
-        // Get admin user (first admin user found)
-        $admin_users = get_users( array( 'role' => 'administrator', 'number' => 1 ) );
-        if ( empty( $admin_users ) ) {
-            return; // No admin user found
-        }
-        
-        $admin_user_id = $admin_users[0]->ID;
-        
-        // Assessment types to create dummy data for
-        $assessment_types = array(
-            'hair_assessment',
-            'ed_treatment_assessment', 
-            'weight_loss_assessment',
-            'health_assessment',
-            'skin_assessment'
-        );
-        
-        foreach ( $assessment_types as $assessment_type ) {
-            $field_labels = $this->get_assessment_field_labels( $assessment_type );
-            
-            // Create dummy assessment data
-            $dummy_data = array();
-            foreach ( $field_labels as $field_key => $label ) {
-                $dummy_data[ $field_key ] = 'dummy_value_for_wp_fusion_detection';
-            }
-            
-            // Store dummy data in the same format as real assessments
-            $dummy_assessment = array(
-                'data' => $dummy_data,
-                'date' => current_time( 'mysql' ),
-                'ip' => '127.0.0.1',
-                'user_agent' => 'ENNU Plugin Dummy Data v15.6'
-            );
-            
-            // Store as latest assessment for this type
-            $latest_key = 'ennu_latest_' . $assessment_type;
-            update_user_meta( $admin_user_id, $latest_key, $dummy_assessment );
-            
-            // Also store individual field values for WP Fusion detection
-            foreach ( $field_labels as $field_key => $label ) {
-                update_user_meta( $admin_user_id, $field_key, 'dummy_value_for_wp_fusion_detection' );
-            }
-        }
-        
-        // Mark that dummy data was created
-        update_option( 'ennu_dummy_fields_created', '15.6' );
-        
-        $this->log_message( 'Dummy assessment fields created for WP Fusion detection', 'info' );
-    }
-    
-    /**
-     * Clean up dummy assessment fields (v15.7)
-     * Removes dummy data created in v15.6 after WP Fusion has detected the fields
-     */
-    private function cleanup_dummy_assessment_fields() {
-        // Check if dummy data was created in v15.6
-        $dummy_version = get_option( 'ennu_dummy_fields_created' );
-        if ( $dummy_version !== '15.6' ) {
-            return; // No dummy data to clean up
-        }
-        
-        // Get admin user (first admin user found)
-        $admin_users = get_users( array( 'role' => 'administrator', 'number' => 1 ) );
-        if ( empty( $admin_users ) ) {
-            return; // No admin user found
-        }
-        
-        $admin_user_id = $admin_users[0]->ID;
-        
-        // Assessment types to clean up dummy data for
-        $assessment_types = array(
-            'hair_assessment',
-            'ed_treatment_assessment', 
-            'weight_loss_assessment',
-            'health_assessment',
-            'skin_assessment'
-        );
-        
-        foreach ( $assessment_types as $assessment_type ) {
-            $field_labels = $this->get_assessment_field_labels( $assessment_type );
-            
-            // Check if the latest assessment is dummy data
-            $latest_key = 'ennu_latest_' . $assessment_type;
-            $assessment_data = get_user_meta( $admin_user_id, $latest_key, true );
-            
-            if ( is_array( $assessment_data ) && 
-                 isset( $assessment_data['user_agent'] ) && 
-                 $assessment_data['user_agent'] === 'ENNU Plugin Dummy Data v15.6' ) {
-                
-                // Remove dummy assessment data
-                delete_user_meta( $admin_user_id, $latest_key );
-                
-                // Remove individual dummy field values
-                foreach ( $field_labels as $field_key => $label ) {
-                    $field_value = get_user_meta( $admin_user_id, $field_key, true );
-                    if ( $field_value === 'dummy_value_for_wp_fusion_detection' ) {
-                        delete_user_meta( $admin_user_id, $field_key );
-                    }
-                }
-            }
-        }
-        
-        // Mark that dummy data was cleaned up
-        update_option( 'ennu_dummy_fields_created', '15.7_cleaned' );
-        
-        $this->log_message( 'Dummy assessment fields cleaned up successfully', 'info' );
     }
     
     /**

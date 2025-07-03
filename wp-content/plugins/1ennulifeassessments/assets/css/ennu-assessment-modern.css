@@ -74,15 +74,14 @@
     padding: 3rem;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
+    transform: translateY(20px);
     opacity: 0;
-    animation: quickFadeIn 0.3s ease-out forwards;
+    animation: slideInUp 0.6s ease-out forwards;
 }
 
-@keyframes quickFadeIn {
-    from {
-        opacity: 0;
-    }
+@keyframes slideInUp {
     to {
+        transform: translateY(0);
         opacity: 1;
     }
 }
@@ -129,16 +128,6 @@
     margin: 0 auto 2rem;
 }
 
-/* Hide all radio buttons and checkboxes */
-input[type="radio"],
-input[type="checkbox"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
-}
-
 /* Answer Option Card */
 .ennu-answer-option {
     background: #f8fafc;
@@ -146,7 +135,7 @@ input[type="checkbox"] {
     border-radius: 16px;
     padding: 2rem;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -174,20 +163,11 @@ input[type="checkbox"] {
     box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25);
 }
 
-/* Selected options have SAME styling as hover state */
 .ennu-answer-option.selected {
-    border-color: #3b82f6 !important;
-    background: #f0f9ff !important; /* Same as hover */
-    transform: translateY(-4px) !important; /* Same as hover */
-    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25) !important; /* Same as hover */
-}
-
-/* When hovering over selected options, maintain the same styling */
-.ennu-answer-option.selected:hover {
-    border-color: #3b82f6 !important;
-    background: #f0f9ff !important; /* Keep same background */
-    transform: translateY(-4px) !important; /* Keep same transform */
-    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25) !important; /* Keep same shadow */
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.3);
 }
 
 .ennu-answer-option.selected::after {
@@ -288,60 +268,19 @@ input[type="checkbox"] {
 .ennu-navigation {
     display: flex;
     justify-content: center;
-    align-items: center;
     gap: 1rem;
-    margin-top: 3rem;
-    position: relative;
+    margin-top: 2rem;
 }
 
-/* Next Button - Centered and Prominent */
-.ennu-nav-btn.next {
-    padding: 1.25rem 3rem;
+.ennu-nav-btn {
+    padding: 1rem 2rem;
     border: none;
     border-radius: 12px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 160px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    margin: 0 auto;
-    display: block;
-}
-
-.ennu-nav-btn.next:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.4);
-}
-
-/* Previous Button - Discrete positioning */
-.ennu-nav-btn.prev {
-    position: absolute;
-    top: -60px;
-    left: 0;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: transparent;
-    color: #64748b;
-    text-decoration: underline;
-    min-width: auto;
-}
-
-.ennu-nav-btn.prev:hover {
-    color: #475569;
-    background: rgba(0, 0, 0, 0.05);
-}
-
-/* General button styles */
-.ennu-nav-btn {
-    transition: all 0.3s ease;
+    min-width: 120px;
 }
 
 .ennu-nav-btn.primary {
@@ -419,8 +358,9 @@ input[type="checkbox"] {
     padding: 3rem;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
     text-align: center;
+    transform: translateY(20px);
     opacity: 0;
-    animation: quickFadeIn 0.3s ease-out forwards;
+    animation: slideInUp 0.6s ease-out forwards;
 }
 
 .ennu-results-title {
@@ -525,43 +465,5 @@ input[type="checkbox"] {
     background: #fef2f2;
     color: #dc2626;
     border: 1px solid #fecaca;
-}
-
-
-
-/* Center all questions, titles, and labels */
-.ennu-question-step h2,
-.ennu-question-step h3,
-.ennu-question-step .question-title,
-.ennu-question-step .question-description,
-.ennu-question-step p {
-    text-align: center !important;
-}
-
-.ennu-question-step label,
-.ennu-question-step .dob-label,
-.dob-dropdowns label {
-    text-align: center !important;
-    display: block !important;
-    margin: 0 auto !important;
-}
-
-.ennu-question-step .dob-dropdowns {
-    text-align: center !important;
-}
-
-.ennu-question-step .calculated-age-display {
-    text-align: center !important;
-}
-
-/* Center the main assessment title */
-.ennu-modern-assessment h1,
-.ennu-modern-assessment .assessment-title {
-    text-align: center !important;
-}
-
-/* Center progress text */
-.ennu-progress-text {
-    text-align: center !important;
 }
 

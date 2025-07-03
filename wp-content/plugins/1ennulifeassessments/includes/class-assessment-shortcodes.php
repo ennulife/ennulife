@@ -94,13 +94,6 @@ final class ENNU_Assessment_Shortcodes {
                 'theme_color' => '#fa709a',
                 'icon_set' => 'health'
             ),
-            'skin_assessment' => array(
-                'title' => __( 'Skin Assessment', 'ennu-life' ),
-                'description' => __( 'Comprehensive skin health evaluation', 'ennu-life' ),
-                'questions' => 8,
-                'theme_color' => '#a8edea',
-                'icon_set' => 'skin'
-            ),
             'advanced_skin_assessment' => array(
                 'title' => __( 'Advanced Skin Assessment', 'ennu-life' ),
                 'description' => __( 'Detailed skin health analysis', 'ennu-life' ),
@@ -147,24 +140,7 @@ final class ENNU_Assessment_Shortcodes {
             }
         }
         
-        // Register results page shortcode
-        add_shortcode( 'ennu-assessment-results', array( $this, 'render_results_page' ) );
-        
-        // Register thank you page shortcodes
-        $thank_you_shortcodes = array(
-            'ennu-hair-results' => 'hair_assessment',
-            'ennu-ed-results' => 'ed_treatment_assessment',
-            'ennu-weight-loss-results' => 'weight_loss_assessment',
-            'ennu-health-results' => 'health_assessment',
-            'ennu-skin-results' => 'skin_assessment'
-        );
-        
-        foreach ( $thank_you_shortcodes as $shortcode_tag => $assessment_type ) {
-            add_shortcode( $shortcode_tag, array( $this, 'render_thank_you_page' ) );
-            error_log( "ENNU: Registered thank you shortcode [{$shortcode_tag}] for {$assessment_type}" );
-        }
-        
-        error_log( "ENNU: Registered " . count( $core_assessments ) . " core assessment shortcodes + " . count( $thank_you_shortcodes ) . " thank you shortcodes + results page" );
+        error_log( "ENNU: Registered " . count( $core_assessments ) . " core assessment shortcodes" );
     }
     
     /**
@@ -287,7 +263,7 @@ final class ENNU_Assessment_Shortcodes {
         
         ob_start();
         ?>
-        <div class="ennu-assessment ennu-modern-assessment ennu-<?php echo esc_attr( $assessment_type ); ?>" 
+        <div class="ennu-assessment ennu-<?php echo esc_attr( $assessment_type ); ?>" 
              data-assessment="<?php echo esc_attr( $assessment_type ); ?>"
              data-theme="<?php echo esc_attr( $atts['theme'] ); ?>">
              
@@ -299,7 +275,7 @@ final class ENNU_Assessment_Shortcodes {
                 <?php if ( $atts['show_progress'] === 'true' ) : ?>
                 <div class="progress-container">
                     <div class="progress-bar">
-                        <div class="ennu-progress-fill" data-progress="0"></div>
+                        <div class="progress-fill" data-progress="0"></div>
                     </div>
                     <div class="progress-text">
                         <span><?php esc_html_e( 'Question', 'ennu-life' ); ?> 
@@ -385,6 +361,14 @@ final class ENNU_Assessment_Shortcodes {
             </form>
             
             <!-- Navigation -->
+            <div class="assessment-navigation">
+                <button type="button" class="nav-btn prev-btn" disabled>
+                    <span><?php esc_html_e( 'Previous', 'ennu-life' ); ?></span>
+                </button>
+                <button type="button" class="nav-btn next-btn" disabled>
+                    <span><?php esc_html_e( 'Next', 'ennu-life' ); ?></span>
+                </button>
+            </div>
         </div>
         
         <!-- Assessment Styles -->
@@ -692,8 +676,13 @@ final class ENNU_Assessment_Shortcodes {
         
         <!-- Assessment JavaScript -->
         <script>
-        // Assessment will be automatically initialized by ennu-assessment-modern.js
-        // when DOM is ready and .ennu-assessment container is found
+        document.addEventListener('DOMContentLoaded', function() {
+            const assessment = new ENNUAssessment('<?php echo esc_js( $assessment_type ); ?>', {
+                totalQuestions: <?php echo esc_js( $config['questions'] ); ?>,
+                autoAdvance: <?php echo esc_js( $atts['auto_advance'] === 'true' ? 'true' : 'false' ); ?>,
+                showProgress: <?php echo esc_js( $atts['show_progress'] === 'true' ? 'true' : 'false' ); ?>
+            });
+        });
         </script>
         <?php
         
@@ -728,222 +717,26 @@ final class ENNU_Assessment_Shortcodes {
      * @return string
      */
     private function render_question( $question_number, $question, $config ) {
-        $assessment_type = $config['assessment_type'] ?? 'default';
         $active_class = $question_number === 1 ? 'active' : '';
+        $columns = count( $question['options'] );
         
         ob_start();
         ?>
         <div class="ennu-question-step question <?php echo esc_attr( $active_class ); ?>" 
              data-step="<?php echo esc_attr( $question_number ); ?>" 
-             data-question="<?php echo esc_attr( $question_number ); ?>"
-             data-question-key="question_<?php echo esc_attr( $assessment_type . '_' . $question_number ); ?>">
+             data-question="<?php echo esc_attr( $question_number ); ?>">
             <h2><?php echo esc_html( $question['title'] ); ?></h2>
             <?php if ( ! empty( $question['description'] ) ) : ?>
                 <p><?php echo esc_html( $question['description'] ); ?></p>
             <?php endif; ?>
             
-            <?php if ( isset( $question['type'] ) && $question['type'] === 'dob_dropdowns' ) : ?>
-                <!-- DOB Dropdowns -->
-                <?php if ( ! empty( $question['show_age'] ) ) : ?>
-                    <div class="current-age-display" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                        <span class="age-label" style="font-size: 14px; color: #666; display: block;">Current Age</span>
-                        <span class="calculated-age" style="font-size: 24px; font-weight: bold; color: #333;">--</span>
-                        <span class="age-unit" style="font-size: 14px; color: #666;">years old</span>
+            <div class="options-grid" data-columns="<?php echo esc_attr( $columns ); ?>">
+                <?php foreach ( $question['options'] as $option ) : ?>
+                    <div class="ennu-answer-option option-card" data-value="<?php echo esc_attr( $option['value'] ); ?>">
+                        <div class="icon"><?php echo $this->get_option_icon( $option['icon'], $config['icon_set'] ); ?></div>
+                        <span><?php echo esc_html( $option['label'] ); ?></span>
                     </div>
-                <?php endif; ?>
-                
-                <div class="dob-dropdowns" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="field-group">
-                        <label for="dob_month_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Month</label>
-                        <select id="dob_month_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_month" 
-                                class="dob-dropdown dob-month" 
-                                <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
-                            <option value="">Select Month</option>
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label for="dob_day_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Day</label>
-                        <select id="dob_day_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_day" 
-                                class="dob-dropdown dob-day" 
-                                <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
-                            <option value="">Day</option>
-                            <?php for ( $day = 1; $day <= 31; $day++ ) : ?>
-                                <option value="<?php echo sprintf( '%02d', $day ); ?>"><?php echo $day; ?></option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label for="dob_year_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Year</label>
-                        <select id="dob_year_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_year" 
-                                class="dob-dropdown dob-year" 
-                                <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
-                            <option value="">Year</option>
-                            <?php 
-                            $current_year = date( 'Y' );
-                            $start_year = $current_year - 100; // 100 years ago
-                            $end_year = $current_year - 13;   // Minimum age 13
-                            for ( $year = $end_year; $year >= $start_year; $year-- ) : 
-                            ?>
-                                <option value="<?php echo $year; ?>"><?php echo $year; ?></option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Hidden field to store the complete DOB -->
-                <input type="hidden" 
-                       name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>" 
-                       class="dob-combined" 
-                       data-question="<?php echo esc_attr( $question_number ); ?>">
-                
-                <!-- Hidden field to store calculated age -->
-                <input type="hidden" 
-                       name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_age" 
-                       class="calculated-age-field" 
-                       data-question="<?php echo esc_attr( $question_number ); ?>">
-                       
-            <?php elseif ( isset( $question['type'] ) && $question['type'] === 'contact_info' ) : ?>
-                <!-- Contact Information Form -->
-                <?php
-                // Get current user data for auto-population
-                $current_user = wp_get_current_user();
-                $user_logged_in = is_user_logged_in();
-                
-                // Pre-populate values for logged-in users
-                $first_name = '';
-                $last_name = '';
-                $email = '';
-                $billing_phone = '';
-                
-                if ( $user_logged_in ) {
-                    $first_name = $current_user->first_name;
-                    $last_name = $current_user->last_name;
-                    $email = $current_user->user_email;
-                    
-                    // Try to get billing phone from various user meta fields
-                    $billing_phone = get_user_meta( $current_user->ID, 'billing_phone', true );
-                    if ( empty( $billing_phone ) ) {
-                        $billing_phone = get_user_meta( $current_user->ID, 'phone', true );
-                    }
-                    if ( empty( $billing_phone ) ) {
-                        $billing_phone = get_user_meta( $current_user->ID, 'user_phone', true );
-                    }
-                    
-                    error_log( 'ENNU: Auto-populating contact fields for user ' . $current_user->ID . ': ' . $first_name . ' ' . $last_name . ' (' . $email . ') - Phone: ' . $billing_phone );
-                }
-                ?>
-                <div class="contact-info-form" style="max-width: 500px; margin: 0 auto;">
-                    <?php if ( $user_logged_in ) : ?>
-                        <div class="user-info-notice" style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 8px; border-left: 4px solid #28a745; font-size: 0.95em;">
-                            <p style="margin: 0; color: #155724;">
-                                <strong>✓ Welcome back!</strong> We've pre-filled your information. Please review and update if needed.
-                            </p>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php foreach ( $question['fields'] as $field ) : ?>
-                        <?php
-                        // Get the pre-populated value for this field
-                        $field_value = '';
-                        if ( $user_logged_in ) {
-                            switch ( $field['name'] ) {
-                                case 'first_name':
-                                    $field_value = $first_name;
-                                    break;
-                                case 'last_name':
-                                    $field_value = $last_name;
-                                    break;
-                                case 'email':
-                                    $field_value = $email;
-                                    break;
-                                case 'billing_phone':
-                                    $field_value = $billing_phone;
-                                    break;
-                            }
-                        }
-                        ?>
-                        <div class="field-group" style="margin-bottom: 20px;">
-                            <label for="<?php echo esc_attr( $field['name'] . '_' . $question_number ); ?>" 
-                                   style="display: block; margin-bottom: 8px; font-weight: 500; text-align: left;">
-                                <?php echo esc_html( $field['label'] ); ?>
-                                <?php if ( ! empty( $field['required'] ) ) : ?>
-                                    <span style="color: #e53e3e;">*</span>
-                                <?php endif; ?>
-                            </label>
-                            <input type="<?php echo esc_attr( $field['type'] ); ?>" 
-                                   id="<?php echo esc_attr( $field['name'] . '_' . $question_number ); ?>"
-                                   name="<?php echo esc_attr( $field['name'] ); ?>" 
-                                   value="<?php echo esc_attr( $field_value ); ?>"
-                                   class="contact-field <?php echo esc_attr( $field['name'] ); ?>"
-                                   style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;"
-                                   <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>
-                                   <?php if ( $user_logged_in && ! empty( $field_value ) ) : ?>
-                                       data-auto-populated="true"
-                                   <?php endif; ?>>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                       
-            <?php else : ?>
-                <!-- Regular Radio Button Options -->
-                <?php 
-                $columns = count( $question['options'] );
-                ?>
-                <div class="options-grid" data-columns="<?php echo esc_attr( $columns ); ?>">
-                    <?php foreach ( $question['options'] as $option ) : ?>
-                        <div class="ennu-answer-option option-card" data-value="<?php echo esc_attr( $option["value"] ); ?>" id="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>">
-                            <input type="radio" id="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>_radio" name="question_<?php echo esc_attr( $assessment_type . '_' . $question_number ); ?>" value="<?php echo esc_attr( $option["value"] ); ?>" class="ennu-radio-input" />
-                            <label for="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>_radio">
-                                <span><?php echo esc_html( $option["label"] ); ?></span>
-                            </label>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-            
-            <!-- Navigation Buttons for each question -->
-            <div class="question-navigation" style="margin-top: 30px; text-align: center;">
-                <?php 
-                // Only show Next button for DOB dropdowns and contact info, not for regular radio buttons
-                $show_next_button = isset( $question['type'] ) && ( $question['type'] === 'dob_dropdowns' || $question['type'] === 'contact_info' );
-                ?>
-                
-                <?php if ( $show_next_button ) : ?>
-                <!-- Next button (only for DOB and contact forms) -->
-                <button type="button" class="nav-btn next-btn main-next" style="background: #667eea; color: white; border: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: block; margin: 0 auto;">
-                    <?php 
-                    if ( isset( $question['type'] ) && $question['type'] === 'contact_info' && ! empty( $question['button_text'] ) ) {
-                        echo esc_html( $question['button_text'] );
-                    } else {
-                        echo 'Next →';
-                    }
-                    ?>
-                </button>
-                <?php endif; ?>
-                
-                <!-- Previous button (below Next button, only show after first question) -->
-                <?php if ( $question_number > 1 ) : ?>
-                <button type="button" class="nav-btn prev-btn" style="background: none; border: none; color: #666; text-decoration: underline; font-size: 14px; cursor: pointer; margin-top: <?php echo $show_next_button ? '15px' : '0px'; ?>; display: block;">
-                    ← Previous
-                </button>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
         </div>
         <?php
@@ -959,7 +752,48 @@ final class ENNU_Assessment_Shortcodes {
      * @return string
      */
     private function get_option_icon( $icon_key, $icon_set ) {
-        return '';
+        // Pixfort icon mapping
+        $pixfort_icons = array(
+            'age_18_25' => '<i class="pix-icon icon-person-graduated"></i>',
+            'age_26_35' => '<i class="pix-icon icon-person-man"></i>',
+            'age_36_45' => '<i class="pix-icon icon-person-doctor"></i>',
+            'age_46_55' => '<i class="pix-icon icon-person-senior"></i>',
+            'age_56_plus' => '<i class="pix-icon icon-person-king"></i>',
+            'male' => '<i class="pix-icon icon-person-man"></i>',
+            'female' => '<i class="pix-icon icon-person-woman"></i>',
+            'other' => '<i class="pix-icon icon-user"></i>',
+            'speed_slow' => '<i class="pix-icon icon-speedometer-1"></i>',
+            'speed_moderate' => '<i class="pix-icon icon-speedometer-2"></i>',
+            'speed_fast' => '<i class="pix-icon icon-speedometer-3"></i>',
+            'speed_very_fast' => '<i class="pix-icon icon-speedometer-4"></i>'
+        );
+        
+        // Check if Pixfort icon exists
+        if ( isset( $pixfort_icons[ $icon_key ] ) ) {
+            return $pixfort_icons[ $icon_key ];
+        }
+        
+        // Fallback to text-based icons (NO UNICODE)
+        $fallback_icons = array(
+            'age_18_25' => '<span class="text-icon">GRAD</span>',
+            'age_26_35' => '<span class="text-icon">M</span>',
+            'age_36_45' => '<span class="text-icon">DR</span>',
+            'age_46_55' => '<span class="text-icon">SR</span>',
+            'age_56_plus' => '<span class="text-icon">F</span>',
+            'male' => '<span class="text-icon">M</span>',
+            'female' => '<span class="text-icon">F</span>',
+            'other' => '<span class="text-icon">O</span>',
+            'speed_slow' => '<span class="text-icon">SLOW</span>',
+            'speed_moderate' => '<span class="text-icon">MED</span>',
+            'speed_fast' => '<span class="text-icon">FAST</span>',
+            'speed_very_fast' => '<span class="text-icon">MAX</span>',
+            'concern_thinning' => '<span class="text-icon">!</span>',
+            'concern_loss' => '<span class="text-icon">-</span>',
+            'concern_growth' => '<span class="text-icon">+</span>',
+            'concern_damage' => '<span class="text-icon">ZAP</span>'
+        );
+        
+        return isset( $fallback_icons[ $icon_key ] ) ? $fallback_icons[ $icon_key ] : '<span class="text-icon">?</span>';
     }
     
     /**
@@ -976,12 +810,15 @@ final class ENNU_Assessment_Shortcodes {
             case 'hair_assessment':
                 return array(
                     array(
-                        'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
+                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
                         'description' => __( 'This helps us recommend age-appropriate hair treatments.', 'ennu-life' ),
-                        'type' => 'dob_dropdowns',
-                        'field_name' => 'date_of_birth',
-                        'required' => true,
-                        'show_age' => true
+                        'options' => array(
+                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
+                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
+                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
+                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
+                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
+                        )
                     ),
                     array(
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
@@ -1071,20 +908,6 @@ final class ENNU_Assessment_Shortcodes {
                             array( 'value' => 'thicken', 'label' => 'Thicken Hair', 'icon' => 'HIGH', 'fallback' => 'Thick' ),
                             array( 'value' => 'improve', 'label' => 'Overall Improvement', 'icon' => 'A+', 'fallback' => 'Better' )
                         )
-                    ),
-                    array(
-                        'title' => __( 'Contact Information', 'ennu-life' ),
-                        'description' => __( 'Please provide your contact details to receive your personalized assessment results.', 'ennu-life' ),
-                        'type' => 'contact_info',
-                        'field_name' => 'contact_info',
-                        'required' => true,
-                        'fields' => array(
-                            array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'required' => true ),
-                            array( 'name' => 'billing_phone', 'label' => 'Phone Number', 'type' => 'tel', 'required' => true )
-                        ),
-                        'button_text' => 'View My Assessment Results'
                     )
                 );
                 
@@ -1205,12 +1028,14 @@ final class ENNU_Assessment_Shortcodes {
             case 'ed_treatment_assessment':
                 return array(
                     array(
-                        'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
+                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
                         'description' => __( 'Age helps determine the most appropriate treatment approach.', 'ennu-life' ),
-                        'type' => 'dob_dropdowns',
-                        'field_name' => 'date_of_birth',
-                        'required' => true,
-                        'show_age' => true
+                        'options' => array(
+                            array( 'value' => '18-30', 'label' => '18-30', 'icon' => 'GRAD', 'fallback' => '18-30' ),
+                            array( 'value' => '31-45', 'label' => '31-45', 'icon' => 'M', 'fallback' => '31-45' ),
+                            array( 'value' => '46-60', 'label' => '46-60', 'icon' => 'DR', 'fallback' => '46-60' ),
+                            array( 'value' => '60+', 'label' => '60+', 'icon' => 'SR', 'fallback' => '60+' )
+                        )
                     ),
                     array(
                         'title' => __( 'What\'s your relationship status?', 'ennu-life' ),
@@ -1311,32 +1136,21 @@ final class ENNU_Assessment_Shortcodes {
                             array( 'value' => 'antidepressants', 'label' => 'Antidepressants', 'icon' => 'AD', 'fallback' => 'AD' ),
                             array( 'value' => 'other', 'label' => 'Other medications', 'icon' => 'RX', 'fallback' => 'Other' )
                         )
-                    ),
-                    array(
-                        'title' => __( 'Contact Information', 'ennu-life' ),
-                        'description' => __( 'Please provide your contact details to receive your personalized assessment results.', 'ennu-life' ),
-                        'type' => 'contact_info',
-                        'field_name' => 'contact_info',
-                        'required' => true,
-                        'fields' => array(
-                            array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'required' => true ),
-                            array( 'name' => 'billing_phone', 'label' => 'Phone Number', 'type' => 'tel', 'required' => true )
-                        ),
-                        'button_text' => 'View My Assessment Results'
                     )
                 );
                 
             case 'weight_loss_assessment':
                 return array(
                     array(
-                        'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
+                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
                         'description' => __( 'Age affects metabolism and weight loss approach.', 'ennu-life' ),
-                        'type' => 'dob_dropdowns',
-                        'field_name' => 'date_of_birth',
-                        'required' => true,
-                        'show_age' => true
+                        'options' => array(
+                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
+                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
+                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
+                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
+                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
+                        )
                     ),
                     array(
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
@@ -1529,32 +1343,21 @@ final class ENNU_Assessment_Shortcodes {
                             array( 'value' => 'feel_better', 'label' => 'Feel better', 'icon' => 'A+', 'fallback' => 'Feel' ),
                             array( 'value' => 'look_better', 'label' => 'Look better', 'icon' => 'LOOK', 'fallback' => 'Look' )
                         )
-                    ),
-                    array(
-                        'title' => __( 'Contact Information', 'ennu-life' ),
-                        'description' => __( 'Please provide your contact details to receive your personalized assessment results.', 'ennu-life' ),
-                        'type' => 'contact_info',
-                        'field_name' => 'contact_info',
-                        'required' => true,
-                        'fields' => array(
-                            array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'required' => true ),
-                            array( 'name' => 'billing_phone', 'label' => 'Phone Number', 'type' => 'tel', 'required' => true )
-                        ),
-                        'button_text' => 'View My Assessment Results'
                     )
                 );
                 
             case 'health_assessment':
                 return array(
                     array(
-                        'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
+                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
                         'description' => __( 'Age helps us provide age-appropriate health recommendations.', 'ennu-life' ),
-                        'type' => 'dob_dropdowns',
-                        'field_name' => 'date_of_birth',
-                        'required' => true,
-                        'show_age' => true
+                        'options' => array(
+                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
+                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
+                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
+                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
+                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
+                        )
                     ),
                     array(
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
@@ -1644,20 +1447,6 @@ final class ENNU_Assessment_Shortcodes {
                             array( 'value' => 'specific', 'label' => 'Specific concern', 'icon' => 'TARGET', 'fallback' => 'Spec' ),
                             array( 'value' => 'wellness', 'label' => 'Wellness optimization', 'icon' => 'A+', 'fallback' => 'Well' )
                         )
-                    ),
-                    array(
-                        'title' => __( 'Contact Information', 'ennu-life' ),
-                        'description' => __( 'Please provide your contact details to receive your personalized assessment results.', 'ennu-life' ),
-                        'type' => 'contact_info',
-                        'field_name' => 'contact_info',
-                        'required' => true,
-                        'fields' => array(
-                            array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'required' => true ),
-                            array( 'name' => 'billing_phone', 'label' => 'Phone Number', 'type' => 'tel', 'required' => true )
-                        ),
-                        'button_text' => 'View My Assessment Results'
                     )
                 );
                 
@@ -1943,101 +1732,6 @@ final class ENNU_Assessment_Shortcodes {
                     )
                 );
                 
-            case 'skin_assessment':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
-                        'description' => __( 'Age helps determine appropriate skin treatments.', 'ennu-life' ),
-                        'type' => 'dob_dropdowns',
-                        'field_name' => 'date_of_birth',
-                        'required' => true,
-                        'show_age' => true
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'Gender affects skin characteristics and concerns.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your skin type?', 'ennu-life' ),
-                        'description' => __( 'Knowing your skin type helps recommend the right products.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'normal', 'label' => 'Normal', 'icon' => 'NORM', 'fallback' => 'Normal' ),
-                            array( 'value' => 'oily', 'label' => 'Oily', 'icon' => 'OIL', 'fallback' => 'Oily' ),
-                            array( 'value' => 'dry', 'label' => 'Dry', 'icon' => 'DRY', 'fallback' => 'Dry' ),
-                            array( 'value' => 'combination', 'label' => 'Combination', 'icon' => 'COMBO', 'fallback' => 'Combo' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your primary skin concern?', 'ennu-life' ),
-                        'description' => __( 'This helps us prioritize your treatment recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'acne', 'label' => 'Acne/Breakouts', 'icon' => 'ACNE', 'fallback' => 'Acne' ),
-                            array( 'value' => 'wrinkles', 'label' => 'Wrinkles/Fine lines', 'icon' => 'WRINK', 'fallback' => 'Wrink' ),
-                            array( 'value' => 'dark_spots', 'label' => 'Dark spots', 'icon' => 'SPOT', 'fallback' => 'Spots' ),
-                            array( 'value' => 'dullness', 'label' => 'Dullness/Uneven tone', 'icon' => 'DULL', 'fallback' => 'Dull' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How much sun exposure do you typically get?', 'ennu-life' ),
-                        'description' => __( 'Sun exposure affects skin damage and treatment needs.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal', 'icon' => 'MIN', 'fallback' => 'Min' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high', 'icon' => 'MAX', 'fallback' => 'Max' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How would you describe your current skincare routine?', 'ennu-life' ),
-                        'description' => __( 'Current routine affects our recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'extensive', 'label' => 'Extensive (5+ steps)', 'icon' => 'EXT', 'fallback' => 'Ext' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate (3-4 steps)', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'basic', 'label' => 'Basic (1-2 steps)', 'icon' => 'BASIC', 'fallback' => 'Basic' ),
-                            array( 'value' => 'none', 'label' => 'No routine', 'icon' => 'NONE', 'fallback' => 'None' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your budget for skincare?', 'ennu-life' ),
-                        'description' => __( 'Budget helps us recommend appropriate products and treatments.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'budget', 'label' => 'Budget-friendly ($0-50/month)', 'icon' => '$', 'fallback' => '$0-50' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)', 'icon' => '$$', 'fallback' => '$50-150' ),
-                            array( 'value' => 'premium', 'label' => 'Premium ($150-300/month)', 'icon' => '$$$', 'fallback' => '$150-300' ),
-                            array( 'value' => 'luxury', 'label' => 'Luxury ($300+/month)', 'icon' => '$$$$', 'fallback' => '$300+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What are your main skincare goals?', 'ennu-life' ),
-                        'description' => __( 'Understanding your goals helps create the perfect plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'clear_skin', 'label' => 'Clear, healthy skin', 'icon' => 'CLEAR', 'fallback' => 'Clear' ),
-                            array( 'value' => 'anti_aging', 'label' => 'Anti-aging', 'icon' => 'ANTI', 'fallback' => 'Anti' ),
-                            array( 'value' => 'glow', 'label' => 'Radiant glow', 'icon' => 'GLOW', 'fallback' => 'Glow' ),
-                            array( 'value' => 'maintenance', 'label' => 'Maintain current skin', 'icon' => 'MAINT', 'fallback' => 'Maint' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Contact Information', 'ennu-life' ),
-                        'description' => __( 'Please provide your contact details to receive your personalized assessment results.', 'ennu-life' ),
-                        'type' => 'contact_info',
-                        'field_name' => 'contact_info',
-                        'required' => true,
-                        'fields' => array(
-                            array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text', 'required' => true ),
-                            array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'required' => true ),
-                            array( 'name' => 'billing_phone', 'label' => 'Phone Number', 'type' => 'tel', 'required' => true )
-                        ),
-                        'button_text' => 'View My Assessment Results'
-                    )
-                );
-                
             default:
                 return array();
         }
@@ -2052,29 +1746,27 @@ final class ENNU_Assessment_Shortcodes {
             return;
         }
         
-        // Enqueue main assessment CSS with cache busting
+        // Enqueue main assessment CSS
         wp_enqueue_style(
-            'ennu-assessment-modern',
-            ENNU_LIFE_PLUGIN_URL . 'assets/css/ennu-assessment-modern.css',
+            'ennu-assessment-styles',
+            ENNU_LIFE_PLUGIN_URL . 'assets/css/assessment-modern.css',
             array(),
-            ENNU_LIFE_VERSION . '.' . time(), // Force cache refresh
-            'all'
+            ENNU_LIFE_VERSION
         );
         
-        // Enqueue main assessment JavaScript with cache busting
+        // Enqueue assessment JavaScript
         wp_enqueue_script(
-            'ennu-assessment-modern',
-            ENNU_LIFE_PLUGIN_URL . 'assets/js/ennu-assessment-modern.js',
-            array('jquery'),
-            ENNU_LIFE_VERSION . '.' . time(), // Force cache refresh
+            'ennu-assessment-script',
+            ENNU_LIFE_PLUGIN_URL . 'assets/js/assessment-modern.js',
+            array( 'jquery' ),
+            ENNU_LIFE_VERSION,
             true
         );
         
-        // Localize script with AJAX data (backup method)
-        wp_localize_script('ennu-assessment-modern', 'ennuAssessment', array(
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('ennu_ajax_nonce'),
-            'version' => ENNU_LIFE_VERSION,
+        // Localize script
+        wp_localize_script( 'ennu-assessment-script', 'ennuAssessment', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'ennu_assessment_' . $assessment_type ),
             'strings' => array(
                 'loading' => __( 'Loading...', 'ennu-life' ),
                 'error' => __( 'An error occurred. Please try again.', 'ennu-life' ),
@@ -2082,7 +1774,7 @@ final class ENNU_Assessment_Shortcodes {
                 'required_field' => __( 'This field is required.', 'ennu-life' ),
                 'invalid_email' => __( 'Please enter a valid email address.', 'ennu-life' )
             )
-        ));
+        ) );
     }
     
     /**
@@ -2104,7 +1796,6 @@ final class ENNU_Assessment_Shortcodes {
                has_shortcode( $post->post_content, 'ennu-weight-loss-assessment' ) ||
                has_shortcode( $post->post_content, 'ennu-weight-loss-quiz' ) ||
                has_shortcode( $post->post_content, 'ennu-health-assessment' ) ||
-               has_shortcode( $post->post_content, 'ennu-skin-assessment' ) ||
                has_shortcode( $post->post_content, 'ennu-advanced-skin-assessment' ) ||
                has_shortcode( $post->post_content, 'ennu-skin-assessment-enhanced' ) ||
                has_shortcode( $post->post_content, 'ennu-hormone-assessment' );
@@ -2114,10 +1805,11 @@ final class ENNU_Assessment_Shortcodes {
      * Handle assessment submission
      */
     public function handle_assessment_submission() {
-        // Security check removed for compatibility
-        error_log('ENNU: Shortcodes assessment submission handler called');
-        
+        // Verify nonce
         $assessment_type = isset( $_POST['assessment_type'] ) ? sanitize_text_field( $_POST['assessment_type'] ) : '';
+        if ( ! isset( $_POST['assessment_nonce'] ) || ! wp_verify_nonce( $_POST['assessment_nonce'], 'ennu_assessment_' . $assessment_type ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ennu-life' ) ) );
+        }
         
         // Sanitize and validate input
         $assessment_data = $this->sanitize_assessment_data( $_POST );
@@ -2478,393 +2170,6 @@ final class ENNU_Assessment_Shortcodes {
         }
         
         return '0.0.0.0';
-    }
-    
-    /**
-     * Render thank you page shortcode
-     * 
-     * @param array $atts Shortcode attributes
-     * @param string $content Shortcode content
-     * @param string $tag Shortcode tag
-     * @return string
-     */
-    public function render_thank_you_page( $atts, $content = '', $tag = '' ) {
-        // Extract assessment type from shortcode tag
-        $assessment_type_map = array(
-            'ennu-hair-results' => 'hair_assessment',
-            'ennu-ed-results' => 'ed_treatment_assessment',
-            'ennu-weight-loss-results' => 'weight_loss_assessment',
-            'ennu-health-results' => 'health_assessment',
-            'ennu-skin-results' => 'skin_assessment'
-        );
-        
-        $assessment_type = isset($assessment_type_map[$tag]) ? $assessment_type_map[$tag] : 'general';
-        
-        // Define assessment-specific content
-        $content_data = $this->get_thank_you_content($assessment_type);
-        
-        // Start output buffering
-        ob_start();
-        ?>
-        
-        <div class="ennu-results-container">
-            <div class="ennu-results-content <?php echo esc_attr($assessment_type); ?>-theme">
-                <div class="success-icon">
-                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="<?php echo esc_attr($content_data['color']); ?>" stroke-width="2" fill="<?php echo esc_attr($content_data['bg_color']); ?>"/>
-                        <path d="m9 12 2 2 4-4" stroke="<?php echo esc_attr($content_data['color']); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                
-                <div class="thank-you-section">
-                    <h1><?php echo esc_html($content_data['title']); ?></h1>
-                    <p class="thank-you-message">
-                        <?php echo esc_html($content_data['message']); ?>
-                    </p>
-                    
-                    <div class="next-steps">
-                        <h2>What's Next?</h2>
-                        <p>
-                            <?php echo esc_html($content_data['next_steps']); ?>
-                        </p>
-                        
-                        <div class="consultation-cta">
-                            <a href="<?php echo esc_url($content_data['consultation_url']); ?>" class="schedule-consultation-btn">
-                                <span class="btn-icon"><?php echo $content_data['icon']; ?></span>
-                                <?php echo esc_html($content_data['button_text']); ?>
-                            </a>
-                        </div>
-                        
-                        <div class="additional-info">
-                            <h3>What to expect in your consultation:</h3>
-                            <ul>
-                                <?php foreach ($content_data['benefits'] as $benefit): ?>
-                                    <li><?php echo esc_html($benefit); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                        
-                        <?php if (isset($content_data['extra_section'])): ?>
-                            <div class="extra-section">
-                                <?php echo $content_data['extra_section']; ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <div class="contact-info">
-                            <p><strong><?php echo esc_html($content_data['contact_label']); ?></strong> Call us at <a href="tel:<?php echo esc_attr($content_data['phone']); ?>"><?php echo esc_html($content_data['phone_display']); ?></a> or email <a href="mailto:<?php echo esc_attr($content_data['email']); ?>"><?php echo esc_html($content_data['email']); ?></a></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <style>
-        .ennu-results-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            font-family: Arial, sans-serif;
-        }
-
-        .ennu-results-content {
-            background: #fff;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            text-align: center;
-            border-top: 5px solid <?php echo esc_attr($content_data['color']); ?>;
-        }
-
-        .success-icon {
-            margin-bottom: 30px;
-            animation: fadeInScale 0.6s ease-out;
-        }
-
-        @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.5); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .thank-you-section h1 {
-            color: <?php echo esc_attr($content_data['color']); ?>;
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .thank-you-message {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        .next-steps {
-            margin-top: 40px;
-        }
-
-        .next-steps h2 {
-            color: <?php echo esc_attr($content_data['color']); ?>;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-        }
-
-        .consultation-cta {
-            margin: 30px 0;
-        }
-
-        .schedule-consultation-btn {
-            display: inline-block;
-            background: <?php echo esc_attr($content_data['gradient']); ?>;
-            color: white;
-            padding: 18px 35px;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 1.1em;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px <?php echo esc_attr($content_data['shadow']); ?>;
-        }
-
-        .schedule-consultation-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px <?php echo esc_attr($content_data['shadow']); ?>;
-            color: white;
-            text-decoration: none;
-        }
-
-        .btn-icon {
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
-
-        .additional-info {
-            margin-top: 40px;
-            text-align: left;
-            background: <?php echo esc_attr($content_data['info_bg']); ?>;
-            padding: 25px;
-            border-radius: 10px;
-            border-left: 4px solid <?php echo esc_attr($content_data['color']); ?>;
-        }
-
-        .additional-info h3 {
-            color: <?php echo esc_attr($content_data['color']); ?>;
-            margin-bottom: 15px;
-        }
-
-        .additional-info ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-
-        .additional-info li {
-            margin: 12px 0;
-            color: #555;
-            line-height: 1.5;
-        }
-
-        .contact-info {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            font-size: 0.95em;
-        }
-
-        .contact-info a {
-            color: <?php echo esc_attr($content_data['color']); ?>;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .contact-info a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .ennu-results-content {
-                padding: 25px;
-            }
-            
-            .thank-you-section h1 {
-                font-size: 2em;
-            }
-            
-            .schedule-consultation-btn {
-                padding: 15px 28px;
-                font-size: 1em;
-            }
-        }
-        </style>
-        
-        <?php
-        return ob_get_clean();
-    }
-    
-    /**
-     * Get thank you content data for assessment type
-     */
-    private function get_thank_you_content($assessment_type) {
-        $content_map = array(
-            'hair_assessment' => array(
-                'title' => 'Your Hair Assessment is Complete!',
-                'message' => 'Thank you for completing your hair health assessment. Our hair restoration specialists will review your responses to create a personalized hair growth plan tailored to your specific needs.',
-                'next_steps' => 'Schedule a consultation with our hair restoration specialists to discuss your personalized treatment options and get started on your hair growth journey.',
-                'benefits' => array(
-                    'Personalized hair restoration strategy',
-                    'Advanced treatment options (PRP, transplants, medications)',
-                    'Hair growth timeline and realistic expectations',
-                    'Customized pricing for your treatment plan'
-                ),
-                'button_text' => 'Schedule Your Hair Consultation',
-                'consultation_url' => home_url('/book-hair-consultation/'),
-                'contact_label' => 'Questions about hair restoration?',
-                'phone' => '+1-800-ENNU-HAIR',
-                'phone_display' => '(800) ENNU-HAIR',
-                'email' => 'hair@ennulife.com',
-                'icon' => '🦱',
-                'color' => '#667eea',
-                'bg_color' => '#f8f9ff',
-                'gradient' => 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                'shadow' => 'rgba(102, 126, 234, 0.3)',
-                'info_bg' => 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)'
-            ),
-            'ed_treatment_assessment' => array(
-                'title' => 'Your ED Assessment is Complete!',
-                'message' => 'Thank you for taking this important step. Our medical professionals will confidentially review your responses to recommend the most effective ED treatment options for you.',
-                'next_steps' => 'Schedule a confidential consultation with our medical specialists to discuss your personalized treatment options in a discreet and professional environment.',
-                'benefits' => array(
-                    'Confidential medical consultation',
-                    'FDA-approved treatment options',
-                    'Discreet and professional care',
-                    'Personalized treatment recommendations'
-                ),
-                'button_text' => 'Schedule Your Confidential Consultation',
-                'consultation_url' => home_url('/book-ed-consultation/'),
-                'contact_label' => 'Confidential questions?',
-                'phone' => '+1-800-ENNU-MENS',
-                'phone_display' => '(800) ENNU-MENS',
-                'email' => 'confidential@ennulife.com',
-                'icon' => '🔒',
-                'color' => '#f093fb',
-                'bg_color' => '#fef7ff',
-                'gradient' => 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                'shadow' => 'rgba(240, 147, 251, 0.3)',
-                'info_bg' => 'linear-gradient(135deg, #fef7ff 0%, #fdf2ff 100%)',
-                'extra_section' => '<div class="privacy-notice" style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 8px; border-left: 4px solid #28a745; font-size: 0.95em;"><p><strong>🔒 Your Privacy is Protected:</strong> All consultations are completely confidential and HIPAA compliant. Your information is secure and private.</p></div>'
-            ),
-            'weight_loss_assessment' => array(
-                'title' => 'Your Weight Loss Assessment is Complete!',
-                'message' => 'Thank you for completing your weight management assessment. Our team will create a comprehensive weight loss plan designed specifically for your goals and lifestyle.',
-                'next_steps' => 'Schedule a consultation with our weight loss specialists to discuss your personalized treatment options and start your transformation journey today.',
-                'benefits' => array(
-                    'Customized weight loss strategy',
-                    'Medical weight loss options (Semaglutide, etc.)',
-                    'Nutritional guidance and meal planning',
-                    'Long-term success and maintenance plan'
-                ),
-                'button_text' => 'Schedule Your Weight Loss Consultation',
-                'consultation_url' => home_url('/book-weight-loss-consultation/'),
-                'contact_label' => 'Questions about weight loss?',
-                'phone' => '+1-800-ENNU-SLIM',
-                'phone_display' => '(800) ENNU-SLIM',
-                'email' => 'weightloss@ennulife.com',
-                'icon' => '⚖️',
-                'color' => '#4facfe',
-                'bg_color' => '#f0faff',
-                'gradient' => 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                'shadow' => 'rgba(79, 172, 254, 0.3)',
-                'info_bg' => 'linear-gradient(135deg, #f0faff 0%, #e6f7ff 100%)'
-            ),
-            'health_assessment' => array(
-                'title' => 'Your Health Assessment is Complete!',
-                'message' => 'Thank you for completing your comprehensive health evaluation. Our healthcare team will review your responses to create a personalized wellness plan for optimal health.',
-                'next_steps' => 'Schedule a consultation with our healthcare specialists to discuss your personalized wellness plan and optimize your overall health.',
-                'benefits' => array(
-                    'Comprehensive health evaluation',
-                    'Preventive care recommendations',
-                    'Hormone optimization options',
-                    'Ongoing health monitoring plan'
-                ),
-                'button_text' => 'Schedule Your Health Consultation',
-                'consultation_url' => home_url('/book-health-consultation/'),
-                'contact_label' => 'Questions about health optimization?',
-                'phone' => '+1-800-ENNU-HLTH',
-                'phone_display' => '(800) ENNU-HLTH',
-                'email' => 'health@ennulife.com',
-                'icon' => '🏥',
-                'color' => '#fa709a',
-                'bg_color' => '#fff8fb',
-                'gradient' => 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                'shadow' => 'rgba(250, 112, 154, 0.3)',
-                'info_bg' => 'linear-gradient(135deg, #fff8fb 0%, #fef5f8 100%)'
-            ),
-            'skin_assessment' => array(
-                'title' => 'Your Skin Assessment is Complete!',
-                'message' => 'Thank you for completing your skin health evaluation. Our dermatology specialists will review your responses to create a personalized skincare and treatment plan.',
-                'next_steps' => 'Schedule a consultation with our skincare specialists to discuss your personalized treatment options and achieve your skin goals.',
-                'benefits' => array(
-                    'Personalized skincare regimen',
-                    'Advanced treatments (Botox, fillers, laser)',
-                    'Professional product recommendations',
-                    'Skin rejuvenation timeline'
-                ),
-                'button_text' => 'Schedule Your Skin Consultation',
-                'consultation_url' => home_url('/book-skin-consultation/'),
-                'contact_label' => 'Questions about skincare?',
-                'phone' => '+1-800-ENNU-SKIN',
-                'phone_display' => '(800) ENNU-SKIN',
-                'email' => 'skin@ennulife.com',
-                'icon' => '✨',
-                'color' => '#a8edea',
-                'bg_color' => '#f0fffe',
-                'gradient' => 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                'shadow' => 'rgba(168, 237, 234, 0.3)',
-                'info_bg' => 'linear-gradient(135deg, #f0fffe 0%, #edfffe 100%)'
-            )
-        );
-        
-        return isset($content_map[$assessment_type]) ? $content_map[$assessment_type] : $content_map['health_assessment'];
-    }
-
-    /**
-     * Render assessment results page
-     * 
-     * @param array $atts Shortcode attributes
-     * @return string
-     */
-    public function render_results_page( $atts = array() ) {
-        // Start session if not already started
-        if ( ! session_id() ) {
-            session_start();
-        }
-        
-        // Check if results data exists in session
-        if ( ! isset( $_SESSION['ennu_assessment_results'] ) ) {
-            return $this->render_error_message( 'No assessment results found. Please complete an assessment first.' );
-        }
-        
-        $results_data = $_SESSION['ennu_assessment_results'];
-        
-        // Extract data for template
-        $assessment_type = $results_data['assessment_type'];
-        $user_data = $results_data['user_data'];
-        $scores = $results_data['scores'];
-        $overall_score = $scores['overall_score'];
-        $category_scores = $scores['category_scores'];
-        
-        // Start output buffering
-        ob_start();
-        
-        // Include the results template
-        $template_path = ENNU_LIFE_PLUGIN_PATH . 'templates/assessment-results.php';
-        if ( file_exists( $template_path ) ) {
-            include $template_path;
-        } else {
-            echo $this->render_error_message( 'Results template not found.' );
-        }
-        
-        return ob_get_clean();
     }
     
     /**
