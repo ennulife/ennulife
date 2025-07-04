@@ -1,6 +1,6 @@
 <?php
 /**
- * ENNU Life Admin Class
+ * ENNU Life Admin Class - Final Version with Global Fields
  */
 
 if (!defined('ABSPATH')) {
@@ -9,452 +9,191 @@ if (!defined('ABSPATH')) {
 
 class ENNU_Admin {
     
-    /**
-     * Constructor - Initialize admin functionality
-     */
     public function __construct() {
-        // Use more specific hook names to avoid conflicts
-        // Admin menu removed per user request
-        // add_action( 'admin_menu', array( $this, 'add_admin_menu' ), 10 );
-        // add_action( 'admin_init', array( $this, 'settings_init' ), 10 );
-        add_action( 'wp_ajax_ennu_admin_action', array( $this, 'handle_admin_ajax' ) );
-        
-        // User profile fields with specific priority
-        add_action( 'show_user_profile', array( $this, 'show_user_assessment_fields' ), 20 );
-        add_action( 'edit_user_profile', array( $this, 'show_user_assessment_fields' ), 20 );
-        add_action( 'personal_options_update', array( $this, 'save_user_assessment_fields' ), 10 );
+        add_action('show_user_profile', array($this, 'show_user_assessment_fields'));
+        add_action('edit_user_profile', array($this, 'show_user_assessment_fields'));
+        add_action('personal_options_update', array($this, 'save_user_assessment_fields'));
         add_action('edit_user_profile_update', array($this, 'save_user_assessment_fields'));
     }
-    
-    /*
-    // Admin menu removed per user request
-    public function add_admin_menu() {
-        // Add main menu page first
-        add_menu_page(
-            'ENNU Life',
-            'ENNU Life',
-            'manage_options',
-            'ennu-life',
-            array($this, 'main_page'),
-            'dashicons-heart',
-            58
-        );
-        
-        // Add submenu pages
-        add_submenu_page(
-            'ennu-life',
-            'Settings',
-            'Settings',
-            'manage_options',
-            'ennu-life-settings',
-            array($this, 'settings_page')
-        );
-        
-        add_submenu_page(
-            'ennu-life',
-            'Submissions',
-            'Submissions',
-            'manage_options',
-            'ennu-life-submissions',
-            array($this, 'submissions_page')
-        );
+
+    /**
+     * Safely get the question structure for an assessment.
+     */
+    private function get_assessment_structure($assessment_type) {
+        if (!class_exists('ENNU_Assessment_Shortcodes')) {
+            require_once ENNU_LIFE_PLUGIN_PATH . 'includes/class-assessment-shortcodes.php';
+        }
+        $shortcodes_instance = new ENNU_Assessment_Shortcodes();
+        $reflection = new ReflectionMethod('ENNU_Assessment_Shortcodes', 'get_assessment_questions');
+        $reflection->setAccessible(true);
+        return $reflection->invoke($shortcodes_instance, $assessment_type);
     }
-    */
-    
-    /*
-    // Admin page methods removed per user request
-    public function main_page() {
-        ?>
-        <div class="wrap">
-            <h1>ENNU Life Dashboard</h1>
-            <div class="card">
-                <h2>Welcome to ENNU Life</h2>
-                <p>Manage your health assessments and submissions from this dashboard.</p>
-                <p><a href="<?php echo admin_url('admin.php?page=ennu-life-submissions'); ?>" class="button button-primary">View Submissions</a></p>
-                <p><a href="<?php echo admin_url('admin.php?page=ennu-life-settings'); ?>" class="button">Settings</a></p>
-            </div>
-        </div>
-        <?php
-    }
-    
-    public function settings_init() {
-        register_setting('ennu_life_settings', 'ennu_life_options');
-        
-        add_settings_section(
-            'ennu_life_main',
-            'Main Settings',
-            array($this, 'settings_section_callback'),
-            'ennu_life_settings'
-        );
-        
-        add_settings_field(
-            'enable_analytics',
-            'Enable Analytics',
-            array($this, 'analytics_field_callback'),
-            'ennu_life_settings',
-            'ennu_life_main'
-        );
-    }
-    
-    public function settings_section_callback() {
-        echo '<p>Configure your ENNU Life plugin settings.</p>';
-    }
-    
-    public function analytics_field_callback() {
-        $options = get_option('ennu_life_options', array());
-        $value = isset($options['enable_analytics']) ? $options['enable_analytics'] : 1;
-        echo '<input type="checkbox" name="ennu_life_options[enable_analytics]" value="1" ' . checked(1, $value, false) . ' />';
-        echo '<label>Enable analytics tracking</label>';
-    }
-    
-    public function settings_page() {
-        ?>
-        <div class="wrap">
-            <h1>ENNU Life Settings</h1>
-            <form method="post" action="options.php">
-                <?php
-                settings_fields('ennu_life_settings');
-                do_settings_sections('ennu_life_settings');
-                submit_button();
-                ?>
-            </form>
-        </div>
-        <?php
-    }
-    
-    public function submissions_page() {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'ennu_assessments';
-        // Fixed: Use wpdb->prepare() to prevent SQL injection
-        $submissions = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM `%1s` ORDER BY created_at DESC LIMIT %d",
-            $table_name,
-            50
-        ));
-        
-        ?>
-        <div class="wrap">
-            <h1>Form Submissions</h1>
-            <div class="card">
-                <h2>Recent Submissions</h2>
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>User</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ($submissions): ?>
-                            <?php foreach ($submissions as $submission): ?>
-                                <tr>
-                                    <td><?php echo esc_html($submission->id); ?></td>
-                                    <td><?php echo esc_html($submission->assessment_type); ?></td>
-                                    <td><?php echo esc_html($submission->user_id); ?></td>
-                                    <td><?php echo esc_html($submission->created_at); ?></td>
-                                    <td>
-                                        <a href="#" class="button">View</a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="5">No submissions found.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <?php
-    }
-    */
     
     /**
-     * Display assessment fields in user profile
+     * Main function to display all custom ENNU Life sections on the user profile.
      */
     public function show_user_assessment_fields($user) {
-        if (!current_user_can('edit_user', $user->ID)) {
-            return;
+        if (!current_user_can('edit_user', $user->ID)) return;
+        wp_nonce_field('ennu_user_profile_update', 'ennu_assessment_nonce');
+        
+        echo '<h2>ENNU Life Global Information</h2>';
+        echo '<p><em>This information is shared across all assessments.</em></p>';
+        echo '<table class="form-table">';
+        $this->display_global_fields($user->ID);
+        echo '</table>';
+
+        echo '<h2>Assessment-Specific Answers</h2>';
+        $assessment_types = [
+            'welcome_assessment' => 'Welcome Assessment',
+            'hair_assessment' => 'Hair Assessment',
+            'skin_assessment' => 'Skin Assessment',
+            'health_assessment' => 'Health Assessment',
+            'weight_loss_assessment' => 'Weight Loss Assessment',
+            'ed_treatment_assessment' => 'ED Treatment Assessment'
+        ];
+
+        foreach ($assessment_types as $type => $label) {
+            $this->display_single_assessment_section($user->ID, $type, $label);
         }
-        
-        // Debug: Check if we have any assessment data
-        $all_meta = get_user_meta($user->ID);
-        $has_assessment_data = false;
-        
-        foreach ($all_meta as $key => $value) {
-            if (strpos($key, 'ennu_') === 0) {
-                $has_assessment_data = true;
-                break;
-            }
-        }
-        
-        ?>
-        <h3>ENNU Life Assessment Data</h3>
-        
-        <?php if (!$has_assessment_data): ?>
-            <p><em>No assessment data found for this user. Complete an assessment to see data here.</em></p>
-            <p><strong>Debug Info:</strong> Looking for user meta keys starting with 'ennu_'</p>
-            
-            <!-- Show a few sample meta keys for debugging -->
-            <details>
-                <summary>Debug: All User Meta Keys (click to expand)</summary>
-                <ul style="max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; margin: 10px 0;">
-                    <?php foreach (array_keys($all_meta) as $meta_key): ?>
-                        <li><code><?php echo esc_html($meta_key); ?></code></li>
-                    <?php endforeach; ?>
-                </ul>
-            </details>
-        <?php endif; ?>
-        
-        <table class="form-table">
-            <?php
-            // Get all assessment types - only the 5 core assessments
-            $assessment_types = array(
-                'hair_assessment' => 'Hair Assessment',
-                'ed_treatment_assessment' => 'ED Treatment Assessment',
-                'weight_loss_assessment' => 'Weight Loss Assessment',
-                'health_assessment' => 'Health Assessment',
-                'skin_assessment' => 'Skin Assessment'
-            );
-            
-            foreach ($assessment_types as $type => $label) {
-                $this->display_assessment_fields($user->ID, $type, $label);
-            }
-            ?>
-        </table>
-        <?php
     }
     
     /**
-     * Display individual assessment fields
+     * Renders the editable fields for global user data (DOB and Gender).
      */
-    private function display_assessment_fields($user_id, $assessment_type, $assessment_label) {
-        // Get all user meta for this assessment type - match form handler naming
-        $clean_assessment_type = str_replace('-', '_', $assessment_type);
-        $meta_prefix = 'ennu_' . $clean_assessment_type . '_';
-        $all_meta = get_user_meta($user_id);
+    private function display_global_fields($user_id){
+        $this->render_text_field('user_dob', 'Date of Birth (YYYY-MM-DD)', get_user_meta($user_id, 'user_dob', true));
+        
+        $gender_options = [
+            ['value' => 'male', 'label' => 'Male'],
+            ['value' => 'female', 'label' => 'Female'],
+        ];
+        $this->render_radio_field('user_gender', 'Gender', get_user_meta($user_id, 'user_gender', true), $gender_options);
+    }
 
-        // Enhanced debugging for field retrieval
-        error_log("ENNU Admin Debug: Looking for fields with prefix: " . $meta_prefix);
-        error_log("ENNU Admin Debug: Total user meta fields: " . count($all_meta));
+    /**
+     * Displays the specific, non-global questions for a single assessment type.
+     */
+    private function display_single_assessment_section($user_id, $assessment_type, $assessment_label) {
+        $questions = $this->get_assessment_structure($assessment_type);
+        if (empty($questions)) return;
 
-        // Find all ENNU-related fields for debugging
-        $ennu_fields = array();
-        foreach ($all_meta as $key => $value) {
-            if (strpos($key, 'ennu_') === 0) {
-                $ennu_fields[$key] = $value[0];
+        $has_specific_answers = false;
+        ob_start();
+
+        echo '<table class="form-table">';
+        foreach ($questions as $index => $question) {
+            // --- KEY CHANGE: Skip global fields (q1=DOB, q2=Gender) and the contact info block ---
+            if ($index < 2 || (isset($question['type']) && $question['type'] === 'contact_info')) {
+                continue;
+            }
+            
+            $has_specific_answers = true;
+            $assessment_prefix = str_replace('_assessment', '', $assessment_type);
+            $simple_question_id = $assessment_prefix . '_q' . ($index + 1);
+            $meta_key = 'ennu_' . $assessment_type . '_' . $simple_question_id;
+            $current_value = get_user_meta($user_id, $meta_key, true);
+
+// --- THIS IS THE DISPLAY FIX ---
+            // Check for the multiselect type first.
+            if (isset($question['type']) && $question['type'] === 'multiselect') {
+                $this->render_checkbox_field($meta_key, $question['title'], $current_value, $question['options']);
+            } 
+            // Handle single-choice radio buttons.
+            elseif (!empty($question['options']) && is_array($question['options'])) {
+                $this->render_radio_field($meta_key, $question['title'], $current_value, $question['options']);
+            } 
+            // Fallback for any other question type.
+            else {
+                $this->render_text_field($meta_key, $question['title'], $current_value);
             }
         }
-        error_log("ENNU Admin Debug: Found ENNU fields: " . print_r(array_keys($ennu_fields), true));
+        echo '</table>';
+        
+        $output = ob_get_clean();
 
-        $assessment_fields = array();
-        foreach ($all_meta as $key => $value) {
-            // Check for both new simple IDs and native contact IDs
-            if (strpos($key, $meta_prefix) === 0 || in_array($key, ['first_name', 'last_name', 'user_email', 'billing_phone', 'user_dob_month', 'user_dob_day', 'user_dob_year', 'user_dob_combined', 'user_age'])) {
-                // Exclude specific meta keys that are not direct assessment questions
-                if (!strpos($key, '_date') && !strpos($key, '_label') && !strpos($key, '_completion_status') && !strpos($key, '_submission_date') && !strpos($key, '_version')) {
-                    $field_key = str_replace($meta_prefix, '', $key);
-                    $field_value = is_array($value) ? $value[0] : $value;
-
-                    // Skip empty values
-                    if (empty($field_value)) {
-                        continue;
-                    }
-
-                    $assessment_fields[$field_key] = array(
-                        'value' => $field_value,
-                        'date' => get_user_meta($user_id, $key . '_date', true),
-                        'label' => get_user_meta($user_id, $key . '_label', true),
-                        'meta_key' => $key
-                    );
-
-                    error_log("ENNU Admin Debug: Found field: " . $key . " = " . $field_value);
-                }
-            }
-        }
-        if (!empty($assessment_fields)) {
-            echo '<tr><th colspan="2"><h4>' . esc_html($assessment_label) . '</h4></th></tr>';
-            
-            // Show completion status first
-            $completion_status = get_user_meta($user_id, $meta_prefix . 'completion_status', true);
-            $submission_date = get_user_meta($user_id, $meta_prefix . 'submission_date', true);
-            
-            if ($completion_status || $submission_date) {
-                echo '<tr>';
-                echo '<th><label>Assessment Status</label></th>';
-                echo '<td>';
-                if ($completion_status) {
-                    echo '<strong>' . esc_html(ucfirst($completion_status)) . '</strong>';
-                }
-                if ($submission_date) {
-                    echo ' - Completed: ' . date('M j, Y g:i A', strtotime($submission_date));
-                }
-                echo '</td>';
-                echo '</tr>';
-            }
-            
-            foreach ($assessment_fields as $field_key => $field_data) {
-                $label = !empty($field_data['label']) ? $field_data['label'] : ucwords(str_replace('_', ' ', $field_key));
-                $date = !empty($field_data['date']) ? ' (Updated: ' . date('M j, Y g:i A', strtotime($field_data['date'])) . ')' : '';
-                
-                echo '<tr>';
-                echo '<th><label for="' . esc_attr($field_data["meta_key"]) . '">' . esc_html($label) . ' (ID: ' . esc_html($field_key) . ')' . $date . '</label></th>';
-                echo '<td>';
-                echo '<input type="text" id="' . esc_attr($field_data['meta_key']) . '" name="' . esc_attr($field_data['meta_key']) . '" value="' . esc_attr($field_data['value']) . '" class="regular-text" readonly />';
-                echo '</td>';
-                echo '</tr>';
-            }
-            
-            echo '<tr><td colspan="2"><hr style="margin: 20px 0;"></td></tr>';
-        } else {
-            // Show debugging info when no fields are found
-            echo '<tr><th colspan="2"><h4>' . esc_html($assessment_label) . '</h4></th></tr>';
-            echo '<tr>';
-            echo '<td colspan="2">';
-            echo '<p><em>No assessment data found for this assessment type.</em></p>';
-            echo '<p><strong>Debug Info:</strong> Looking for fields with prefix: <code>' . esc_html($meta_prefix) . '</code></p>';
-            
-            // Show all ENNU fields for debugging
-            $all_ennu_fields = array();
-            foreach ($all_meta as $key => $value) {
-                if (strpos($key, 'ennu_') === 0) {
-                    $all_ennu_fields[] = $key . ' = ' . (is_array($value) ? $value[0] : $value);
-                }
-            }
-            
-            if (!empty($all_ennu_fields)) {
-                echo '<details style="margin: 10px 0;">';
-                echo '<summary>Debug: All ENNU fields found (click to expand)</summary>';
-                echo '<ul style="max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; margin: 10px 0;">';
-                foreach ($all_ennu_fields as $field_info) {
-                    echo '<li><code>' . esc_html($field_info) . '</code></li>';
-                }
-                echo '</ul>';
-                echo '</details>';
-            } else {
-                echo '<p><strong>No ENNU fields found at all.</strong> This suggests the assessment data was not saved properly.</p>';
-            }
-            
-            echo '</td>';
-            echo '</tr>';
-            echo '<tr><td colspan="2"><hr style="margin: 20px 0;"></td></tr>';
+        // Only show the heading for assessments that have specific answers.
+        if ($has_specific_answers) {
+            echo '<h3 style="margin-top: 2em; margin-bottom: 1em;">' . esc_html($assessment_label) . '</h3>';
+            echo $output;
         }
     }
+
+    private function render_text_field($meta_key, $label, $current_value) {
+        echo '<tr><th><label for="' . esc_attr($meta_key) . '">' . esc_html($label) . '</label></th>';
+        echo '<td><input type="text" id="' . esc_attr($meta_key) . '" name="' . esc_attr($meta_key) . '" value="' . esc_attr($current_value) . '" class="regular-text" /></td></tr>';
+    }
+
+    private function render_radio_field($meta_key, $label, $current_value, $options) {
+        echo '<tr><th>' . esc_html($label) . '</th><td><fieldset><legend class="screen-reader-text"><span>' . esc_html($label) . '</span></legend>';
+        foreach ($options as $option) {
+            echo '<label style="display: block; margin-bottom: 5px;"><input type="radio" name="' . esc_attr($meta_key) . '" value="' . esc_attr($option['value']) . '" ' . checked($current_value, $option['value'], false) . ' /> ' . esc_html($option['label']) . '</label>';
+        }
+        echo '</fieldset></td></tr>';
+    }
     
+    private function render_checkbox_field($meta_key, $label, $current_values, $options) {
+        // The saved value is a comma-separated string, so we convert it to an array for easy checking.
+        $saved_options = array_map('trim', explode(',', $current_values));
+    
+        echo '<tr><th>' . esc_html($label) . '</th><td><fieldset><legend class="screen-reader-text"><span>' . esc_html($label) . '</span></legend>';
+    
+        foreach ($options as $option) {
+            $is_checked = in_array($option['value'], $saved_options);
+            echo '<label style="display: block; margin-bottom: 5px;">
+                      <input type="checkbox" name="' . esc_attr($meta_key) . '[]" value="' . esc_attr($option['value']) . '" ' . checked($is_checked, true, false) . ' /> ' 
+                      . esc_html($option['label']) . 
+                 '</label>';
+        }
+    
+        echo '</fieldset></td></tr>';
+    }
+
     /**
-     * Save user assessment fields (currently read-only, but structure for future)
+     * Saves all custom fields from the user profile page.
      */
     public function save_user_assessment_fields($user_id) {
-        if (!current_user_can('edit_user', $user_id)) {
-            return;
+        if (!isset($_POST['ennu_assessment_nonce']) || !wp_verify_nonce($_POST['ennu_assessment_nonce'], 'ennu_user_profile_update')) return;
+        if (!current_user_can('edit_user', $user_id)) return;
+
+        // --- KEY CHANGE: Save the new global fields first ---
+        if (isset($_POST['user_dob'])) {
+            update_user_meta($user_id, 'user_dob', sanitize_text_field($_POST['user_dob']));
+        }
+        if (isset($_POST['user_gender'])) {
+            update_user_meta($user_id, 'user_gender', sanitize_text_field($_POST['user_gender']));
         }
         
-        // Currently read-only, but structure is here for future editable fields
-        // Assessment data should primarily be updated through the assessment forms
-    }
-    
-    /**
-     * Handle admin AJAX requests with enhanced error handling
-     */
-    public function handle_admin_ajax() {
-        try {
-            // Verify nonce with standardized field name
-            $nonce = $_POST['ennu_nonce'] ?? $_POST['nonce'] ?? '';
-            if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'ennu_admin_nonce' ) ) {
-                throw new Exception( 'Security verification failed' );
+        // Now, loop through and save only the assessment-specific fields
+        $assessment_types = ['welcome_assessment', 'hair_assessment', 'skin_assessment', 'health_assessment', 'weight_loss_assessment', 'ed_treatment_assessment'];
+        foreach ($assessment_types as $type) {
+            $questions = $this->get_assessment_structure($type);
+            if (empty($questions)) continue;
+
+            foreach ($questions as $index => $question) {
+                // Skip saving global fields from this loop
+                if ($index < 2 || (isset($question['type']) && $question['type'] === 'contact_info')) {
+                    continue;
+                }
+                
+                $assessment_prefix = str_replace('_assessment', '', $type);
+                $simple_question_id = $assessment_prefix . '_q' . ($index + 1);
+                $meta_key = 'ennu_' . $type . '_' . $simple_question_id;
+
+                if (isset($_POST[$meta_key])) {
+                    // Check if the submitted data is an array (from our new checkboxes).
+                    if (is_array($_POST[$meta_key])) {
+                        // Sanitize each selected value in the array.
+                        $sanitized_values = array_map('sanitize_text_field', $_POST[$meta_key]);
+                        // Join the array into a single, comma-separated string to save in the database.
+                        $value_to_save = implode(', ', $sanitized_values);
+                    } else {
+                        // If it's not an array, just sanitize the single value as before.
+                        $value_to_save = sanitize_text_field($_POST[$meta_key]);
+                    }
+                    // Update the user meta with the correctly formatted value.
+                    update_user_meta($user_id, $meta_key, $value_to_save);
+                }
             }
-            
-            // Verify user capabilities
-            if ( ! current_user_can( 'manage_options' ) ) {
-                throw new Exception( 'Insufficient permissions' );
-            }
-            
-            $action = sanitize_text_field( $_POST['admin_action'] ?? '' );
-            if ( empty( $action ) ) {
-                throw new Exception( 'No action specified' );
-            }
-            
-            // Log admin action for debugging
-            error_log( sprintf( 'ENNU Admin Action: %s by user %d', $action, get_current_user_id() ) );
-            
-            switch ( $action ) {
-                case 'export_data':
-                    $this->export_assessment_data();
-                    break;
-                case 'delete_submission':
-                    $this->delete_submission();
-                    break;
-                case 'clear_cache':
-                    $this->clear_plugin_cache();
-                    break;
-                default:
-                    throw new Exception( 'Unknown action: ' . $action );
-            }
-            
-        } catch ( Exception $e ) {
-            error_log( 'ENNU Admin AJAX Error: ' . $e->getMessage() );
-            wp_send_json_error( array(
-                'message' => $e->getMessage(),
-                'code' => 'admin_error'
-            ) );
-        }
-    }
-    
-    /**
-     * Export assessment data with error handling
-     */
-    private function export_assessment_data() {
-        try {
-            // Implementation for data export
-            wp_send_json_success( array(
-                'message' => 'Export functionality coming soon',
-                'data' => array()
-            ) );
-        } catch ( Exception $e ) {
-            throw new Exception( 'Export failed: ' . $e->getMessage() );
-        }
-    }
-    
-    /**
-     * Delete submission with validation
-     */
-    private function delete_submission() {
-        try {
-            $submission_id = intval( $_POST['submission_id'] ?? 0 );
-            if ( $submission_id <= 0 ) {
-                throw new Exception( 'Invalid submission ID' );
-            }
-            
-            // Implementation for submission deletion
-            wp_send_json_success( array(
-                'message' => 'Submission deletion functionality coming soon',
-                'submission_id' => $submission_id
-            ) );
-        } catch ( Exception $e ) {
-            throw new Exception( 'Deletion failed: ' . $e->getMessage() );
-        }
-    }
-    
-    /**
-     * Clear plugin cache
-     */
-    private function clear_plugin_cache() {
-        try {
-            // Clear any plugin-specific caches
-            delete_transient( 'ennu_assessment_cache' );
-            delete_transient( 'ennu_settings_cache' );
-            
-            wp_send_json_success( array(
-                'message' => 'Plugin cache cleared successfully'
-            ) );
-        } catch ( Exception $e ) {
-            throw new Exception( 'Cache clearing failed: ' . $e->getMessage() );
         }
     }
 }
-

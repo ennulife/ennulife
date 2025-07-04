@@ -52,6 +52,11 @@ final class ENNU_Assessment_Shortcodes {
      */
     private function init_assessments() {
         $this->assessments = array(
+            'welcome_assessment' => array(
+                'title' => __( 'Welcome Assessment', 'ennu-life' ),
+                'description' => __( 'Let\'s get to know you and your health goals.', 'ennu-life' ),
+                'theme_color' => '#5A67D8', // Indigo color
+            ),
             'hair_assessment' => array(
                 'title' => __( 'Hair Assessment', 'ennu-life' ),
                 'description' => __( 'Comprehensive hair health evaluation', 'ennu-life' ),
@@ -131,6 +136,7 @@ final class ENNU_Assessment_Shortcodes {
     private function register_shortcodes() {
         // Register only the 5 core PRD-compliant assessment shortcodes
         $core_assessments = array(
+            'welcome_assessment' => 'ennu-welcome-assessment',
             'hair_assessment' => 'ennu-hair-assessment',
             'ed_treatment_assessment' => 'ennu-ed-treatment-assessment',
             'weight_loss_assessment' => 'ennu-weight-loss-assessment',
@@ -349,312 +355,6 @@ final class ENNU_Assessment_Shortcodes {
             </form>
         </div>
         
-        <!-- Assessment Styles -->
-        <style>
-        .ennu-assessment {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .assessment-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .assessment-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: <?php echo esc_attr( $config['theme_color'] ); ?>;
-            margin-bottom: 10px;
-        }
-        
-        .assessment-description {
-            font-size: 1.1rem;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        
-        .progress-container {
-            margin: 20px 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, <?php echo esc_attr( $config['theme_color'] ); ?>, <?php echo esc_attr( $this->adjust_color_brightness( $config['theme_color'], 20 ) ); ?>);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        
-        .progress-text {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .questions-container {
-            position: relative;
-            min-height: 400px;
-        }
-        
-        .question {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .question.active {
-            display: block;
-        }
-        
-        .question h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .question p {
-            font-size: 1rem;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        
-        .options-grid {
-            display: grid;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .options-grid[data-columns="2"] { grid-template-columns: repeat(2, 1fr); }
-        .options-grid[data-columns="3"] { grid-template-columns: repeat(3, 1fr); }
-        .options-grid[data-columns="4"] { grid-template-columns: repeat(2, 1fr); }
-        .options-grid[data-columns="5"] { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-        
-        @media (max-width: 768px) {
-            .options-grid {
-                grid-template-columns: 1fr !important;
-            }
-        }
-        
-        .option-card {
-            padding: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #ffffff;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .option-card:hover {
-            border-color: <?php echo esc_attr( $config['theme_color'] ); ?>;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-        
-        .option-card.selected {
-            border-color: <?php echo esc_attr( $config['theme_color'] ); ?>;
-            background: linear-gradient(135deg, <?php echo esc_attr( $config['theme_color'] ); ?>15, <?php echo esc_attr( $config['theme_color'] ); ?>25);
-            color: #333;
-        }
-        
-        .option-card .icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        .option-card span {
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-        
-        .contact-fields {
-            display: grid;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .field-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .field-group label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        
-        .field-group input, .field-group select {
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-        
-        .field-group input:focus, .field-group select:focus {
-            outline: none;
-            border-color: <?php echo esc_attr( $config['theme_color'] ); ?>;
-        }
-        
-        .required {
-            color: #e74c3c;
-        }
-        
-        .privacy-notice {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid <?php echo esc_attr( $config['theme_color'] ); ?>;
-        }
-        
-        .submit-assessment-btn {
-            width: 100%;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, <?php echo esc_attr( $config['theme_color'] ); ?>, <?php echo esc_attr( $this->adjust_color_brightness( $config['theme_color'], -20 ) ); ?>);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .submit-assessment-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        }
-        
-        .submit-assessment-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .assessment-success {
-            text-align: center;
-            padding: 40px 20px;
-        }
-        
-        .success-icon {
-            font-size: 4rem;
-            color: #27ae60;
-            margin-bottom: 20px;
-        }
-        
-        .assessment-success h2 {
-            color: #27ae60;
-            margin-bottom: 15px;
-        }
-        
-        .next-steps {
-            margin-top: 30px;
-            text-align: left;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        
-        .next-steps ul {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .next-steps li {
-            padding: 8px 0;
-            position: relative;
-            padding-left: 25px;
-        }
-        
-        .next-steps li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #27ae60;
-            font-weight: bold;
-        }
-        
-        .assessment-navigation {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .nav-btn {
-            padding: 12px 24px;
-            border: 2px solid <?php echo esc_attr( $config['theme_color'] ); ?>;
-            background: transparent;
-            color: <?php echo esc_attr( $config['theme_color'] ); ?>;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-btn:hover:not(:disabled) {
-            background: <?php echo esc_attr( $config['theme_color'] ); ?>;
-            color: white;
-        }
-        
-        .nav-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .ennu-assessment {
-                padding: 15px;
-                margin: 10px;
-            }
-            
-            .assessment-title {
-                font-size: 2rem;
-            }
-            
-            .question h2 {
-                font-size: 1.5rem;
-            }
-            
-            .option-card {
-                padding: 15px;
-            }
-            
-            .assessment-navigation {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .dob-dropdowns {
-                grid-template-columns: 1fr !important;
-            }
-        }
-        </style>
         
         <!-- Assessment JavaScript Debug Info -->
         <script>
@@ -711,7 +411,8 @@ final class ENNU_Assessment_Shortcodes {
         <div class="ennu-question-step question <?php echo esc_attr( $active_class ); ?>" 
              data-step="<?php echo esc_attr( $question_number ); ?>" 
              data-question="<?php echo esc_attr( $question_number ); ?>"
-             data-question-key="<?php echo esc_attr( $simple_question_id ); ?>">
+             data-question-key="<?php echo esc_attr( $simple_question_id ); ?>"
+             data-question-type="<?php echo esc_attr( $question['type'] ?? 'single' ); ?>">
             <h2><?php echo esc_html( $question['title'] ); ?></h2>
             <?php if ( ! empty( $question['description'] ) ) : ?>
                 <p><?php echo esc_html( $question['description'] ); ?></p>
@@ -861,7 +562,7 @@ final class ENNU_Assessment_Shortcodes {
                                    id="<?php echo esc_attr( $field['name'] ); ?>" 
                                    name="<?php echo esc_attr( $field['name'] ); ?>"
                                    value="<?php echo esc_attr( $field_value ); ?>"
-                                   class="contact-field <?php echo esc_attr( $field['name'] ); ?>"
+                                   class="<?php echo esc_attr( $input_class ); ?> form-control"
                                    style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;"
                                    <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>
                                    <?php if ( $user_logged_in && ! empty( $field_value ) ) : ?>
@@ -880,12 +581,13 @@ final class ENNU_Assessment_Shortcodes {
                 ?>
                 <div class="options-grid" data-columns="<?php echo esc_attr( $columns ); ?>">
                     <?php if ( isset( $question["options"] ) && is_array( $question["options"] ) ) : foreach ( $question["options"] as $option ) : ?>
-                        <label class="ennu-answer-option option-card" for="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>">
+                        <label class="ennu-answer-option option-card" for="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" data-value="<?php echo esc_attr( $option["value"] ); ?>">
                             <input type="radio" 
                                    id="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" 
                                    name="<?php echo esc_attr( $simple_question_id ); ?>" 
                                    value="<?php echo esc_attr( $option["value"] ); ?>" 
-                                   class="ennu-radio-input" 
+                                   class="ennu-radio-input"
+                                   data-value="<?php echo esc_attr( $option['value'] ); ?>"
                                    style="display: none;" />
                             <span><?php echo esc_html( $option["label"] ); ?></span>
                         </label>
@@ -894,10 +596,11 @@ final class ENNU_Assessment_Shortcodes {
             <?php endif; ?>
             
             <!-- Navigation Buttons for each question -->
-            <div class="question-navigation" style="margin-top: 30px; text-align: center;">
+            <div class="ennu-navigation" style="margin-top: 30px; text-align: center;">
                 <?php 
                 // Only show Next button for DOB dropdowns and contact info, not for regular radio buttons
-                $show_next_button = isset( $question['type'] ) && ( $question['type'] === 'dob_dropdowns' || $question['type'] === 'contact_info' );
+                //$show_next_button = isset( $question['type'] ) && ( $question['type'] === 'dob_dropdowns' || $question['type'] === 'contact_info' );
+                $show_next_button = isset( $question['type'] ) && in_array($question['type'], ['dob_dropdowns', 'contact_info', 'multiselect']);
                 ?>
                 
                 <?php if ( $show_next_button ) : ?>
@@ -934,6 +637,70 @@ final class ENNU_Assessment_Shortcodes {
      */
     private function get_assessment_questions( $assessment_type ) {
         switch ( $assessment_type ) {
+// In get_assessment_questions()
+        
+        case 'welcome_assessment':
+            return array(
+            array(
+                'title'       => __( 'What gender were you assigned at birth?', 'ennu-life' ),
+                'description' => __( 'This helps us tailor our recommendations.', 'ennu-life' ),
+                'type'        => 'single', // <-- THIS WAS THE CRITICAL MISSING PIECE
+                'options'     => array(
+                    array( 'value' => 'female', 'label' => __( 'Female', 'ennu-life' ) ),
+                    array( 'value' => 'male', 'label' => __( 'Male', 'ennu-life' ) )
+                )
+            ),
+            array(
+                'title'       => __( 'What is your age?', 'ennu-life' ),
+                'description' => __( 'Your age helps us understand your health profile.', 'ennu-life' ),
+                'type' => 'dob_dropdowns',
+                'field_name' => 'date_of_birth',
+                'required' => true,
+                'show_age' => true
+            ),
+            array(
+                'title'       => __( 'What are your health goals?', 'ennu-life' ),
+                'description' => __( 'Select all that apply. This helps us personalize your journey.', 'ennu-life' ),
+                'type'        => 'multiselect', // <-- THIS WAS ALSO MISSING
+                'options'     => array(
+                    array( 'value' => 'live_longer', 'label' => __( 'Live longer', 'ennu-life' ) ),
+                    array( 'value' => 'boost_energy', 'label' => __( 'Boost energy', 'ennu-life' ) ),
+                    array( 'value' => 'improve_sleep', 'label' => __( 'Improve sleep', 'ennu-life' ) ),
+                    array( 'value' => 'lose_weight', 'label' => __( 'Lose weight', 'ennu-life' ) ),
+                    array( 'value' => 'build_muscle', 'label' => __( 'Build muscle', 'ennu-life' ) ),
+                    array( 'value' => 'sharpen_focus', 'label' => __( 'Sharpen focus & memory', 'ennu-life' ) ),
+                    array( 'value' => 'balance_hormones', 'label' => __( 'Balance hormones', 'ennu-life' ) ),
+                    array( 'value' => 'improve_mood', 'label' => __( 'Improve mood', 'ennu-life' ) ),
+                    array( 'value' => 'boost_libido', 'label' => __( 'Boost libido & performance', 'ennu-life' ) ),
+                    array( 'value' => 'support_heart', 'label' => __( 'Support heart health', 'ennu-life' ) ),
+                    array( 'value' => 'manage_menopause', 'label' => __( 'Manage menopause', 'ennu-life' ) ),
+                    array( 'value' => 'increase_testosterone', 'label' => __( 'Increase testosterone', 'ennu-life' ) )
+                )
+            ),
+                array(
+                    'title'       => __( 'What\'s your first and last name?', 'ennu-life' ),
+                    'type'        => 'contact_info',
+                    'fields'      => array(
+                        array( 'name' => 'first_name', 'label' => 'First Name', 'type' => 'text' ),
+                        array( 'name' => 'last_name', 'label' => 'Last Name', 'type' => 'text' )
+                    )
+                ),
+                array(
+                    'title'       => __( 'What’s your email address?', 'ennu-life' ),
+                    'type'        => 'contact_info',
+                    'fields'      => array(
+                        array( 'name' => 'email', 'label' => 'Email Address', 'type' => 'email' )
+                    )
+                ),
+                array(
+                    'title'       => __( 'What’s your mobile number?', 'ennu-life' ),
+                    'type'        => 'contact_info',
+                    'fields'      => array(
+                        array( 'name' => 'billing_phone', 'label' => 'Mobile Number', 'type' => 'tel' )
+                    ),
+                    'button_text' => 'View My Assessment Results'
+                )
+            );
             case 'hair_assessment':
                 return array(
                     array(
@@ -950,7 +717,6 @@ final class ENNU_Assessment_Shortcodes {
                         'options' => array(
                             array( 'value' => 'male', 'label' => 'Male' ),
                             array( 'value' => 'female', 'label' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other' )
                         )
                     ),
                     array(
@@ -1595,68 +1361,99 @@ final class ENNU_Assessment_Shortcodes {
                has_shortcode( $post->post_content, 'ennu-skin-assessment-enhanced' ) ||
                has_shortcode( $post->post_content, 'ennu-hormone-assessment' );
     }
+
+
+// In class-assessment-shortcodes.php, find and replace this entire function:
     
     /**
-     * Handle assessment submission
+     * Handle assessment submission - FINAL VERSION with corrected redirect flow
      */
     public function handle_assessment_submission() {
-        error_log('ENNU: Assessment submission handler called');
-        error_log('ENNU: POST data keys: ' . implode(', ', array_keys($_POST)));
-        
-        // Security check - allow both nonce formats for compatibility
-        $assessment_type = isset( $_POST['assessment_type'] ) ? sanitize_text_field( $_POST['assessment_type'] ) : '';
+        // --- Step 1: Basic validation and security checks ---
+        $assessment_type = isset( $_POST['assessment_type'] ) ? sanitize_key( $_POST['assessment_type'] ) : '';
+        if ( empty( $assessment_type ) ) {
+            wp_send_json_error( array( 'message' => 'Assessment type not specified.' ) );
+            return;
+        }
+    
         $nonce_field = 'assessment_nonce';
         $nonce_action = 'ennu_assessment_' . $assessment_type;
-        
-        // Check for nonce (but allow bypass if not present for compatibility)
-        if ( isset( $_POST[ $nonce_field ] ) ) {
-            if ( ! wp_verify_nonce( $_POST[ $nonce_field ], $nonce_action ) ) {
-                error_log('ENNU: Nonce verification failed for assessment: ' . $assessment_type);
-                wp_send_json_error( array( 'message' => __( 'Security verification failed.', 'ennu-life' ) ) );
+        if ( !isset($_POST[$nonce_field]) || !wp_verify_nonce($_POST[$nonce_field], $nonce_action) ) {
+             if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "ennu_ajax_nonce")) {
+                wp_send_json_error( array( 'message' => 'Security check failed. Please refresh and try again.' ) );
                 return;
-            }
-        } else {
-            error_log('ENNU: No nonce found, proceeding without verification for compatibility');
+             }
         }
-        
-        if ( empty( $assessment_type ) ) {
-            error_log('ENNU: No assessment type provided');
-            wp_send_json_error( array( 'message' => __( 'Assessment type not specified.', 'ennu-life' ) ) );
-            return;
-        }
-        
-        error_log('ENNU: Processing assessment type: ' . $assessment_type);
-        
-        // Sanitize and validate input
+    
         $assessment_data = $this->sanitize_assessment_data( $_POST );
-        error_log('ENNU: Sanitized data - Answers count: ' . count($assessment_data['answers']));
-        
         if ( ! $this->validate_assessment_data( $assessment_data ) ) {
-            error_log('ENNU: Assessment data validation failed');
-            wp_send_json_error( array( 'message' => __( 'Please check your information and try again.', 'ennu-life' ) ) );
+            wp_send_json_error( array( 'message' => 'Please fill out all required fields.' ) );
             return;
         }
-        
+    
+        // --- Step 2: Handle User Registration/Login for Logged-Out Users ---
+        if ( ! is_user_logged_in() ) {
+            $email = $assessment_data['contact_email'];
+            $existing_user = get_user_by( 'email', $email );
+    
+            if ( $existing_user ) {
+                $login_url = wp_login_url(wp_get_referer()); // Redirect back after login
+                $error_message = 'An account with this email already exists. Please <a href="' . esc_url($login_url) . '" target="_blank" rel="noopener noreferrer">log in here</a> to continue.';
+                wp_send_json_error( array( 'message' => $error_message ) );
+                // This 'return' is correct, it stops execution for existing users.
+                return;
+    
+            } else {
+                $first_name = sanitize_text_field( $_POST['first_name'] ?? '' );
+                $last_name = sanitize_text_field( $_POST['last_name'] ?? '' );
+                $password = wp_generate_password( 12, true );
+    
+                $user_data = array(
+                    'user_login'    => $email,
+                    'user_email'    => $email,
+                    'user_pass'     => $password,
+                    'first_name'    => $first_name,
+                    'last_name'     => $last_name,
+                    'display_name'  => trim( $first_name . ' ' . $last_name ),
+                    'role'          => 'subscriber',
+                );
+                
+                $user_id = wp_insert_user( $user_data );
+    
+                if ( is_wp_error( $user_id ) ) {
+                    wp_send_json_error( array( 'message' => 'Could not create your account: ' . $user_id->get_error_message() ) );
+                    return;
+                }
+    
+                wp_set_current_user( $user_id, $email );
+                wp_set_auth_cookie( $user_id );
+                do_action( 'wp_login', $email, get_user_by('id', $user_id) );
+                
+                // *** THE CRITICAL FIX IS HERE ***
+                // The previous code was missing a `return;` statement inside the `is_wp_error` block
+                // and did not have this block at all. After creating the user, the script
+                // would just end. Now, it correctly proceeds to Step 3.
+            }
+        }
+    
+        // --- Step 3: Save Assessment Data and Send Response ---
+        // This part of the code will now run for newly created users as well.
         try {
-            // Save to user meta (if user is logged in)
             $this->save_user_assessment_meta( $assessment_data );
-            
-            // Send notification email
             $this->send_assessment_notification( $assessment_data );
-            
-            error_log('ENNU: Assessment submission successful for: ' . $assessment_type);
-            
+    
             wp_send_json_success( array( 
-                'message' => __( 'Assessment submitted successfully!', 'ennu-life' ),
-                'redirect' => $this->get_thank_you_url( $assessment_data['assessment_type'] )
+                'message' => __( 'Success! Creating your results...', 'ennu-life' ),
+                'redirect_url' => $this->get_thank_you_url( $assessment_type )
             ) );
-            
+    
         } catch ( Exception $e ) {
             error_log( 'ENNU Assessment Submission Error: ' . $e->getMessage() );
-            wp_send_json_error( array( 'message' => __( 'An error occurred while processing your assessment.', 'ennu-life' ) ) );
+            wp_send_json_error( array( 'message' => 'An error occurred while saving your assessment.' ) );
         }
     }
-    
+
+
     /**
      * Sanitize assessment data
      * 
@@ -1679,18 +1476,21 @@ final class ENNU_Assessment_Shortcodes {
         
         // Sanitize question answers - handle simple format like hair_q1, skin_q2, etc.
         foreach ( $data as $key => $value ) {
-            $clean_key = sanitize_key( $key );
-            $clean_value = sanitize_text_field( $value );
-            
-            // Skip empty values
-            if ( empty( $clean_value ) ) {
-                continue;
-            }
-            
-            // Capture simple assessment questions (hair_q1, skin_q2, etc.)
-            if ( preg_match( '/^(hair|skin|ed|weight|health)_q\d+/', $clean_key ) ) {
-                $sanitized["answers"][ $clean_key ] = $clean_value;
-            }
+       // --- EDIT 1: Handle array keys from multiselect checkboxes ---
+        $clean_key = sanitize_key( str_replace('[]', '', $key) );
+        
+        // --- EDIT 2: Sanitize value whether it's a string or an array ---
+        $clean_value = is_array($value) ? array_map('sanitize_text_field', $value) : sanitize_text_field( $value );
+        
+        // Skip empty values
+        if ( empty( $clean_value ) ) {
+            continue;
+        }
+        
+        // --- EDIT 3: Add 'welcome' to the regex ---
+        if ( preg_match( '/^(welcome|hair|skin|ed_treatment|weight_loss|health)_q\d+/', $clean_key ) ) {
+            $sanitized["answers"][ $clean_key ] = $clean_value;
+        }
             // Capture contact info fields
             elseif ( in_array( $clean_key, array( 'first_name', 'last_name', 'email', 'billing_phone' ) ) ) {
                 $sanitized["answers"][ $clean_key ] = $clean_value;
@@ -1741,58 +1541,59 @@ final class ENNU_Assessment_Shortcodes {
         return true;
     }
     
-    /**
-     * Save assessment data to user meta
-     * 
-     * @param array $data Assessment data
-     */
-    private function save_user_assessment_meta( $data ) {
-        $user_id = get_current_user_id();
 
-        if ( ! $user_id ) {
-            return;
-        }
+// In class-assessment-shortcodes.php, find and replace this entire function:
+    
+/**
+ * Save assessment data to user meta - FINALIZED VERSION
+ * * @param array $data Assessment data
+ */
+private function save_user_assessment_meta( $data ) {
+    $user_id = get_current_user_id();
+    if ( ! $user_id ) {
+        return;
+    }
 
-        $timestamp = current_time( 'timestamp' );
-        $submission_id = $data['assessment_type'] . '_' . $timestamp;
+    $timestamp = current_time( 'timestamp' );
+    $assessment_type = $data['assessment_type'];
+    $submission_id = $assessment_type . '_' . $timestamp;
 
-        // Save contact information to native user fields
-        $user_data = array(
-            'ID' => $user_id,
-            'user_email' => $data['contact_email'],
-        );
+    // --- NEW: Define keys for global fields, mapping Welcome Assessment's unique order ---
+    $dob_key_map = [ 'welcome_assessment' => 'welcome_q2' ];
+    $gender_key_map = [ 'welcome_assessment' => 'welcome_q1' ];
 
-        // Extract first and last name
-        $first_name = $data['answers']['first_name'] ?? '';
-        $last_name = $data['answers']['last_name'] ?? '';
+    // For other assessments, default to q1 for DOB and q2 for Gender
+    $dob_key = $dob_key_map[$assessment_type] ?? str_replace('_assessment', '', $assessment_type) . '_q1';
+    $gender_key = $gender_key_map[$assessment_type] ?? str_replace('_assessment', '', $assessment_type) . '_q2';
 
-        if ( ! empty( $first_name ) ) {
-            $user_data['first_name'] = $first_name;
-        }
-        if ( ! empty( $last_name ) ) {
-            $user_data['last_name'] = $last_name;
-        }
+    // --- CORE LOGIC CHANGE ---
+    // Save individual answers, handling global and multiselect fields
+    if ( isset( $data['answers'] ) && is_array( $data['answers'] ) ) {
+        foreach ( $data['answers'] as $question_key => $answer_value ) {
 
-        wp_update_user( $user_data );
-
-        // Save phone number
-        update_user_meta( $user_id, 'billing_phone', $data['contact_phone'] );
-
-        // Save assessment data
-        update_user_meta( $user_id, 'ennu_last_type', $data['assessment_type'] );
-        update_user_meta( $user_id, 'ennu_last_submission_id', $submission_id );
-
-        // Save individual answers
-        if ( isset( $data['answers'] ) && is_array( $data['answers'] ) ) {
-            foreach ( $data['answers'] as $question_key => $answer_value ) {
-                $meta_key = 'ennu_' . $data['assessment_type'] . '_' . $question_key;
-                update_user_meta( $user_id, $meta_key, $answer_value );
+            // If the current question is DOB or Gender, save it to a global meta key
+            if ($question_key === $dob_key) {
+                update_user_meta( $user_id, 'user_dob', $answer_value );
+            } elseif ($question_key === $gender_key) {
+                update_user_meta( $user_id, 'user_gender', $answer_value );
+            } else {
+                // Otherwise, save it as an assessment-specific meta key
+                $meta_key = 'ennu_' . $assessment_type . '_' . $question_key;
+                
+                // NEW: Convert array from multi-select into a comma-separated string for saving
+                $value_to_save = is_array($answer_value) ? implode(', ', $answer_value) : $answer_value;
+                
+                update_user_meta( $user_id, $meta_key, $value_to_save );
             }
         }
-
-        // Save full submission data
-        update_user_meta( $user_id, 'ennu_submission_' . $submission_id, $data );
     }
+
+    // Save general assessment metadata
+    update_user_meta( $user_id, 'ennu_last_type', $assessment_type );
+    update_user_meta( $user_id, 'ennu_last_submission_id', $submission_id );
+    update_user_meta( $user_id, 'ennu_submission_' . $submission_id, $data );
+}
+    
     
     /**
      * Send assessment notification email
@@ -1907,15 +1708,29 @@ final class ENNU_Assessment_Shortcodes {
         return ob_get_clean();
     }
     
+// In class-assessment-shortcodes.php, find and replace this entire function:
+    
     /**
-     * Get thank you page URL
-     * 
+     * Get thank you page URL - FINAL CORRECTED VERSION
+     *
      * @param string $assessment_type Assessment type
      * @return string
      */
     private function get_thank_you_url( $assessment_type ) {
-        // Return current page URL by default
-        return add_query_arg( 'assessment_completed', $assessment_type, wp_get_referer() ?: home_url() );
+        // This array maps each assessment type to its dedicated results page URL.
+        $thank_you_pages = array(
+            'welcome_assessment'         => home_url('/welcome/'),
+            'hair_assessment'         => home_url('/hair-assessment-results/'),
+            'ed_treatment_assessment' => home_url('/ed-treatment-results/'),
+            'weight_loss_assessment'  => home_url('/weight-loss-results/'),
+            'health_assessment'       => home_url('/health-assessment-results/'),
+            'skin_assessment'         => home_url('/skin-assessment-results/'),
+            // Add a fallback for any other case
+            'general'                 => home_url('/assessment-results/')
+        );
+    
+        // Return the correct URL for the assessment_type, or the general fallback if not found.
+        return isset( $thank_you_pages[$assessment_type] ) ? $thank_you_pages[$assessment_type] : $thank_you_pages['general'];
     }
     
     /**
@@ -1929,6 +1744,7 @@ final class ENNU_Assessment_Shortcodes {
     public function render_thank_you_page( $atts, $content = '', $tag = '' ) {
         // Extract assessment type from shortcode tag
         $assessment_type_map = array(
+            'ennu-welcome-results' => 'welcome_assessment',
             'ennu-hair-results' => 'hair_assessment',
             'ennu-ed-results' => 'ed_treatment_assessment',
             'ennu-weight-loss-results' => 'weight_loss_assessment',

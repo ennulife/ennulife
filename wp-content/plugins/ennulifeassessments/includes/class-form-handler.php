@@ -451,15 +451,16 @@ This is an automated message. Please do not reply to this email.
      */
     private function get_assessment_results_url($assessment_type) {
         $urls = array(
+            'welcome_assessment' => home_url('/welcome/'),
             'hair_assessment' => home_url('/hair-assessment-results/'),
             'ed_treatment_assessment' => home_url('/ed-treatment-results/'),
             'weight_loss_assessment' => home_url('/weight-loss-results/'),
             'health_assessment' => home_url('/health-assessment-results/'),
             'skin_assessment' => home_url('/skin-assessment-results/'),
-            'general_assessment' => home_url('/assessment-results/')
+            'general_assessment' => home_url('/welcome/')
         );
         
-        return isset($urls[$assessment_type]) ? $urls[$assessment_type] : $urls['general_assessment'];
+        return isset($urls[$assessment_type]) ? $urls[$assessment_type] : $urls['welcome_assessment'];
     }
     
     /**
@@ -478,6 +479,15 @@ This is an automated message. Please do not reply to this email.
         $all_keys = implode(' ', array_keys($form_data));
         $all_keys_lower = strtolower($all_keys);
         
+        // Welcome Assessment Detection
+        if (strpos($all_keys_lower, 'live_longer') !== false || 
+            strpos($all_keys_lower, 'boost_energy') !== false ||
+            isset($form_data['question_welcome_1']) ||
+            isset($form_data['question_welcome_assessment_1'])) {
+            error_log('ENNU: Detected Welcome assessment');
+            return 'welcome_assessment';
+        }
+        
         // Hair Assessment Detection
         if (strpos($all_keys_lower, 'hair') !== false || 
             strpos($all_keys_lower, 'scalp') !== false ||
@@ -488,6 +498,7 @@ This is an automated message. Please do not reply to this email.
             error_log('ENNU: Detected HAIR assessment');
             return 'hair_assessment';
         }
+        
         
         // ED Treatment Assessment Detection
         if (strpos($all_keys_lower, 'ed_treatment') !== false ||
@@ -536,6 +547,7 @@ This is an automated message. Please do not reply to this email.
         // Fallback: try to detect from URL referrer if available
         if (isset($_SERVER['HTTP_REFERER'])) {
             $referrer = strtolower($_SERVER['HTTP_REFERER']);
+            if (strpos($referrer, 'registration') !== false) return 'welcome_assessment';
             if (strpos($referrer, 'hair') !== false) return 'hair_assessment';
             if (strpos($referrer, 'ed') !== false) return 'ed_treatment_assessment';
             if (strpos($referrer, 'weight') !== false) return 'weight_loss_assessment';

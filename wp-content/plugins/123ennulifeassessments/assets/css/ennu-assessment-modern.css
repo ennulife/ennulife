@@ -1,0 +1,567 @@
+/**
+ * ENNU Life Modern Assessment Interface
+ * Beautiful click-to-select design with icons and animations
+ */
+
+/* Assessment Container */
+.ennu-modern-assessment {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+    min-height: 100vh;
+    color: #1e293b;
+    padding: 2rem 0;
+}
+
+.ennu-assessment-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* Progress Bar */
+.ennu-progress-wrapper {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.ennu-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.ennu-progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.ennu-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.ennu-progress-text {
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Question Card */
+.ennu-question-card {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: quickFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes quickFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.ennu-question-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.ennu-question-subtitle {
+    color: #64748b;
+    font-size: 1.125rem;
+    text-align: center;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+}
+
+/* Answer Options Grid */
+.ennu-answer-options {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.ennu-answer-options.grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.ennu-answer-options.grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ennu-answer-options.grid-4 {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ennu-answer-options.grid-single {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+/* Hide all radio buttons and checkboxes */
+input[type="radio"],
+input[type="checkbox"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Answer Option Card */
+.ennu-answer-option {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.ennu-answer-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.ennu-answer-option:hover::before {
+    left: 100%;
+}
+
+.ennu-answer-option:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25);
+}
+
+/* Selected options have SAME styling as hover state */
+.ennu-answer-option.selected {
+    border-color: #3b82f6 !important;
+    background: #f0f9ff !important; /* Same as hover */
+    transform: translateY(-4px) !important; /* Same as hover */
+    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25) !important; /* Same as hover */
+}
+
+/* When hovering over selected options, maintain the same styling */
+.ennu-answer-option.selected:hover {
+    border-color: #3b82f6 !important;
+    background: #f0f9ff !important; /* Keep same background */
+    transform: translateY(-4px) !important; /* Keep same transform */
+    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25) !important; /* Keep same shadow */
+}
+
+.ennu-answer-option.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 24px;
+    height: 24px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Answer Option Icon */
+.ennu-answer-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.ennu-answer-option:hover .ennu-answer-icon {
+    transform: scale(1.1) rotate(5deg);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.ennu-answer-option.selected .ennu-answer-icon {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+}
+
+/* Answer Option Text */
+.ennu-answer-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.ennu-answer-description {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.ennu-answer-option:hover .ennu-answer-text {
+    color: #3b82f6;
+}
+
+.ennu-answer-option.selected .ennu-answer-text {
+    color: #1e40af;
+}
+
+/* Multiple Choice Indicators */
+.ennu-multiple-choice .ennu-answer-option {
+    position: relative;
+}
+
+.ennu-multiple-choice .ennu-answer-option::after {
+    content: '';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #cbd5e1;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.ennu-multiple-choice .ennu-answer-option.selected::after {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    content: '✓';
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Navigation Buttons */
+.ennu-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 3rem;
+    position: relative;
+}
+
+/* Next Button - Centered and Prominent */
+.ennu-nav-btn.next {
+    padding: 1.25rem 3rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 160px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    margin: 0 auto;
+    display: block;
+}
+
+.ennu-nav-btn.next:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.4);
+}
+
+/* Previous Button - Discrete positioning */
+.ennu-nav-btn.prev {
+    position: absolute;
+    top: -60px;
+    left: 0;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    color: #64748b;
+    text-decoration: underline;
+    min-width: auto;
+}
+
+.ennu-nav-btn.prev:hover {
+    color: #475569;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* General button styles */
+.ennu-nav-btn {
+    transition: all 0.3s ease;
+}
+
+.ennu-nav-btn.primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+}
+
+.ennu-nav-btn.primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.4);
+}
+
+.ennu-nav-btn.secondary {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+}
+
+.ennu-nav-btn.secondary:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.ennu-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Auto Progress Animation */
+.ennu-auto-progress {
+    text-align: center;
+    margin-top: 2rem;
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in-out 1s forwards;
+}
+
+.ennu-auto-progress-text {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.ennu-auto-progress-bar {
+    width: 200px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.ennu-auto-progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 2px;
+    animation: autoProgress 2s ease-in-out forwards;
+}
+
+@keyframes autoProgress {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Results Section */
+.ennu-results-section {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    opacity: 0;
+    animation: quickFadeIn 0.3s ease-out forwards;
+}
+
+.ennu-results-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 2rem;
+}
+
+.ennu-score-display {
+    display: inline-block;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.ennu-score-display::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6);
+    z-index: -1;
+    animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ennu-assessment-container {
+        padding: 0 1rem;
+    }
+    
+    .ennu-question-card {
+        padding: 2rem;
+    }
+    
+    .ennu-question-title {
+        font-size: 1.5rem;
+    }
+    
+    .ennu-answer-options {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+    
+    .ennu-answer-option {
+        padding: 1.5rem;
+    }
+    
+    .ennu-answer-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+}
+
+/* Loading States */
+.ennu-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Success/Error Messages */
+.ennu-message {
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin: 1rem 0;
+    font-weight: 500;
+}
+
+.ennu-message.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.ennu-message.error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+
+
+/* Center all questions, titles, and labels */
+.ennu-question-step h2,
+.ennu-question-step h3,
+.ennu-question-step .question-title,
+.ennu-question-step .question-description,
+.ennu-question-step p {
+    text-align: center !important;
+}
+
+.ennu-question-step label,
+.ennu-question-step .dob-label,
+.dob-dropdowns label {
+    text-align: center !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+.ennu-question-step .dob-dropdowns {
+    text-align: center !important;
+}
+
+.ennu-question-step .calculated-age-display {
+    text-align: center !important;
+}
+
+/* Center the main assessment title */
+.ennu-modern-assessment h1,
+.ennu-modern-assessment .assessment-title {
+    text-align: center !important;
+}
+
+/* Center progress text */
+.ennu-progress-text {
+    text-align: center !important;
+}
+

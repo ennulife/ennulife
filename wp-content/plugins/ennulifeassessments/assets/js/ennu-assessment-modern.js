@@ -72,53 +72,49 @@
         },
         
         // Handle answer selection
-        handleAnswerSelection: function(e) {
+     // Handle answer selection
+    handleAnswerSelection: function(e) {
+        const $option = $(e.currentTarget);
+        const $question = $option.closest('.ennu-question-step');
+        // This is the key: we now read the data-attribute set by the PHP.
+        const questionType = $question.data('question-type'); 
+        const questionKey = $question.data("question-key");
+        const answerValue = $option.data('value');
+        
+        if (questionType === 'single') {
             e.preventDefault();
-            
-            var $option = $(e.currentTarget);
-            var $question = $option.closest('.ennu-question-step');
-            var questionType = $question.data('question-type') || 'single';
-            var questionKey = $question.data("question-key");
-            // Ensure questionKey uses the simple ID format (e.g., hair_q1)
-            if (questionKey && questionKey.includes("_q")) {
-                questionKey = questionKey.replace(".q", "_q");
-            }
-            var answerValue = $option.data('value');
-            
-            // Handle different question types
-            if (questionType === 'single') {
-                // Single choice - clear other selections first
-                $question.find('.ennu-answer-option').removeClass('selected');
-                
-                // Select this option
-                $option.addClass('selected');
-                $option.find('input[type="radio"]').prop('checked', true);
-                
-                // Store answer
-                this.assessmentData[questionKey] = answerValue;
-                
-                // Auto-progress after delay
-                this.startAutoProgress();
-                
-            } else if (questionType === 'multiple') {
-                // Multiple choice - toggle selection
-                $option.toggleClass('selected');
-                
-                // Collect all selected values
-                var selectedValues = [];
-                $question.find('.ennu-answer-option.selected').each(function() {
-                    selectedValues.push($(this).data('value'));
-                });
-                
-                this.assessmentData[questionKey] = selectedValues;
-                
-                // Show next button for multiple choice
-                this.showNavigationButtons();
-            }
-            
-            // Add selection animation
-            this.animateSelection($option);
-        },
+            $question.find('.ennu-answer-option').removeClass('selected');
+            $option.addClass('selected');
+            $option.find('input[type="radio"]').prop('checked', true);
+            this.assessmentData[questionKey] = answerValue;
+            this.startAutoProgress(); // Auto-progress only for single choice.
+        }
+        else if (questionType === 'multiselect') { // Changed from 'multiple' to be more specific
+            e.preventDefault(); // Prevent the default click to handle it manually
+        
+            // Find the hidden checkbox inside the clicked option
+            const $checkbox = $option.find('input[type="radio"]');
+        
+            // Manually toggle the checkbox's checked state
+            $checkbox.prop('checked', !$checkbox.prop('checked'));
+        
+            // Toggle the visual 'selected' class
+            $option.toggleClass('selected');
+        
+            // Collect all selected values into an array
+            var selectedValues = [];
+            $question.find('.ennu-answer-option.selected').each(function() {
+                selectedValues.push($(this).data('value'));
+            });
+        
+            this.assessmentData[questionKey] = selectedValues;
+        
+            // Show the "Next" button instead of auto-progressing
+            this.showNavigationButtons();
+        }
+    
+        this.animateSelection($option);
+    },
         
         // Start auto-progression timer
         startAutoProgress: function() {
@@ -214,71 +210,56 @@
             }
         },
         
-        // Validate current step has required selections
+// Validate current step has required selections
         validateCurrentStep: function() {
             var $currentStep = $(".ennu-question-step.active");
-            
+        
             // Check for DOB dropdowns first
-            var $dobDropdowns = $currentStep.find('.dob-dropdown');
-            if ($dobDropdowns.length > 0) {
-                var $monthSelect = $currentStep.find('.dob-month');
-                var $daySelect = $currentStep.find('.dob-day');
-                var $yearSelect = $currentStep.find('.dob-year');
-                
-                var month = $monthSelect.val();
-                var day = $daySelect.val();
-                var year = $yearSelect.val();
-                
-                if (month && day && year) {
+            if ($currentStep.find('.dob-dropdown').length > 0) {
+                if ($currentStep.find('.dob-month').val() && $currentStep.find('.dob-day').val() && $currentStep.find('.dob-year').val()) {
                     return true; // DOB is complete
                 } else {
                     this.showValidationError("Please complete your date of birth before continuing.");
                     return false;
                 }
             }
-            
+        
             // Check for contact information form
-            var $contactForm = $currentStep.find('.contact-info-form');
-            if ($contactForm.length > 0) {
-                console.log('Contact form detected, validating fields...');
-                var $requiredFields = $contactForm.find('input[required]');
+            if ($currentStep.find('.contact-info-form').length > 0) {
                 var allFieldsFilled = true;
-                var emptyFieldName = '';
-                
-                console.log('Found', $requiredFields.length, 'required fields');
-                
-                $requiredFields.each(function() {
-                    var $field = $(this);
-                    var value = $field.val().trim();
-                    var fieldName = $field.attr('name') || $field.attr('id') || 'Unknown field';
-                    
-                    console.log('Checking field:', fieldName, 'Value:', value);
-                    
-                    if (!value) {
+                $currentStep.find('input[required]').each(function() {
+                    if (!$(this).val().trim()) {
                         allFieldsFilled = false;
-                        emptyFieldName = $field.prev('label').text() || fieldName;
-                        console.log('Empty field found:', emptyFieldName);
-                        return false; // Break out of each loop
+                        return false; // Exit the loop early
                     }
                 });
-                
                 if (allFieldsFilled) {
-                    console.log('All contact fields filled, validation passed');
-                    return true; // Contact form is complete
+                    return true;
                 } else {
-                    console.log('Contact form validation failed');
-                    this.showValidationError("Please fill in all required fields: " + emptyFieldName);
+                    this.showValidationError("Please fill in all required fields.");
                     return false;
                 }
             }
-            
-            // Check for radio button selections
-            var $selectedOption = $currentStep.find("input[type=\"radio\"]:checked");
-            if ($selectedOption.length === 0) {
-                this.showValidationError("Please select an answer before continuing.");
-                return false;
+        
+            // --- THIS IS THE FIX ---
+            // It now correctly checks for radio OR checkbox selections.
+        
+            // Check for single-choice radio buttons
+            if ($currentStep.find("input[type='radio']").length > 0) {
+                if ($currentStep.find("input[type='radio']:checked").length === 0) {
+                    this.showValidationError("Please select an answer before continuing.");
+                    return false;
+                }
             }
-            
+            // Check for multi-select checkboxes
+            else if ($currentStep.find("input[type='checkbox']").length > 0) {
+                if ($currentStep.find("input[type='checkbox']:checked").length === 0) {
+                    this.showValidationError("Please select at least one option.");
+                    return false;
+                }
+            }
+        
+            // If the step has no validation requirements (or passed them), it's valid.
             return true;
         },
         
@@ -816,6 +797,8 @@
             var baseUrl = window.location.origin;
             
             switch (assessmentType) {
+                case 'welcome_assessment':
+                    return baseUrl + '/welcome/';
                 case 'hair_assessment':
                     return baseUrl + '/hair-assessment-results/';
                 case 'ed_treatment_assessment':
@@ -1353,7 +1336,7 @@
         
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            10% { transform: scale(1.01); }
             100% { transform: scale(1); }
         }
     `;
