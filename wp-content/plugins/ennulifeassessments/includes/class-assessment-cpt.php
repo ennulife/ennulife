@@ -175,13 +175,13 @@ class ENNU_Assessment_CPT {
      * Initialize WordPress hooks
      */
     private function init_hooks() {
-        add_action('init', array($this, 'register_assessment_cpts'), 1); // Highest priority to register first
+        // add_action('init', array($this, 'register_assessment_cpts'), 1); // Highest priority to register first
         add_action('add_meta_boxes', array($this, 'add_assessment_meta_boxes'));
         add_action('save_post', array($this, 'save_assessment_meta_boxes'));
         
         // Hook into form submission for dual saving
-        add_action('wp_ajax_ennu_form_submit', array($this, 'handle_dual_save'), 5);
-        add_action('wp_ajax_nopriv_ennu_form_submit', array($this, 'handle_dual_save'), 5);
+        // add_action("wp_ajax_ennu_form_submit", array($this, "handle_dual_save"), 5);
+        // add_action("wp_ajax_nopriv_ennu_form_submit", array($this, "handle_dual_save"), 5);
         
         // Add columns and custom column content after CPTs are registered
         add_action('init', array($this, 'setup_cpt_columns'), 20);

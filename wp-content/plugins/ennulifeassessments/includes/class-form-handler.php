@@ -76,10 +76,16 @@ class ENNU_Life_Form_Handler {
      * Handle AJAX form submission
      */
     public function handle_ajax_submission() {
-        // Remove all security checks for maximum compatibility
-        error_log('ENNU v21.7: Form submission received');
+        error_log('ENNU v22.5: Enhanced form submission received');
         
         try {
+            // Enhanced nonce validation - MUST be strict
+            if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "ennu_ajax_nonce")) {
+                error_log("ENNU ERROR: Nonce verification failed or missing. Possible CSRF attack.");
+                wp_send_json_error(array("message" => "Security check failed. Please refresh the page and try again."));
+                return;
+            }
+            error_log("ENNU: Nonce validation successful");            
             // Get form data
             $form_data = $_POST;
             unset($form_data['action'], $form_data['nonce']);
@@ -90,7 +96,33 @@ class ENNU_Life_Form_Handler {
                 return;
             }
             
-            error_log('ENNU: Form data received: ' . print_r($form_data, true));
+            error_log('ENNU: Form data received (' . count($form_data) . ' fields): ' . print_r(array_keys($form_data), true));
+            
+            // Enhanced validation for required fields
+            $required_fields = array('first_name', 'last_name', 'email');
+            $missing_fields = array();
+            
+            foreach ($required_fields as $field) {
+                if (empty($form_data[$field]) || trim($form_data[$field]) === '') {
+                    $missing_fields[] = $field;
+                }
+            }
+            
+            if (!empty($missing_fields)) {
+                error_log('ENNU ERROR: Missing required fields: ' . implode(', ', $missing_fields));
+                wp_send_json_error(array(
+                    'message' => 'Missing required fields: ' . implode(', ', $missing_fields),
+                    'missing_fields' => $missing_fields
+                ));
+                return;
+            }
+            
+            // Validate email format
+            if (!is_email($form_data['email'])) {
+                error_log('ENNU ERROR: Invalid email format: ' . $form_data['email']);
+                wp_send_json_error(array('message' => 'Invalid email address format'));
+                return;
+            }
             
             // Detect assessment type
             $assessment_type = $this->detect_assessment_type($form_data);

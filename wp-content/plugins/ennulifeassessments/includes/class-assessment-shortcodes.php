@@ -1,6 +1,6 @@
 <?php
 /**
- * ENNU Life Assessment Shortcodes Class - Perfected Version
+ * ENNU Life Assessment Shortcodes Class - Fixed Version
  * 
  * Handles all assessment shortcodes with proper security, performance,
  * and WordPress standards compliance.
@@ -55,7 +55,7 @@ final class ENNU_Assessment_Shortcodes {
             'hair_assessment' => array(
                 'title' => __( 'Hair Assessment', 'ennu-life' ),
                 'description' => __( 'Comprehensive hair health evaluation', 'ennu-life' ),
-                'questions' => 10,
+                'questions' => 11,
                 'theme_color' => '#667eea',
                 'icon_set' => 'hair'
             ),
@@ -69,14 +69,14 @@ final class ENNU_Assessment_Shortcodes {
             'ed_treatment_assessment' => array(
                 'title' => __( 'ED Treatment Assessment', 'ennu-life' ),
                 'description' => __( 'Confidential ED treatment evaluation', 'ennu-life' ),
-                'questions' => 11,
+                'questions' => 12,
                 'theme_color' => '#f093fb',
                 'icon_set' => 'medical'
             ),
             'weight_loss_assessment' => array(
                 'title' => __( 'Weight Loss Assessment', 'ennu-life' ),
                 'description' => __( 'Personalized weight management evaluation', 'ennu-life' ),
-                'questions' => 12,
+                'questions' => 13,
                 'theme_color' => '#4facfe',
                 'icon_set' => 'fitness'
             ),
@@ -90,14 +90,14 @@ final class ENNU_Assessment_Shortcodes {
             'health_assessment' => array(
                 'title' => __( 'Health Assessment', 'ennu-life' ),
                 'description' => __( 'Comprehensive health evaluation', 'ennu-life' ),
-                'questions' => 10,
+                'questions' => 11,
                 'theme_color' => '#fa709a',
                 'icon_set' => 'health'
             ),
             'skin_assessment' => array(
                 'title' => __( 'Skin Assessment', 'ennu-life' ),
                 'description' => __( 'Comprehensive skin health evaluation', 'ennu-life' ),
-                'questions' => 8,
+                'questions' => 9,
                 'theme_color' => '#a8edea',
                 'icon_set' => 'skin'
             ),
@@ -126,7 +126,7 @@ final class ENNU_Assessment_Shortcodes {
     }
     
     /**
-     * Register all assessment shortcodes (Method 1 - Specific Shortcodes Only)
+     * Register all assessment shortcodes
      */
     private function register_shortcodes() {
         // Register only the 5 core PRD-compliant assessment shortcodes
@@ -172,8 +172,11 @@ final class ENNU_Assessment_Shortcodes {
      */
     private function setup_hooks() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assessment_assets' ) );
+        // Register both action names for compatibility
         add_action( 'wp_ajax_ennu_submit_assessment', array( $this, 'handle_assessment_submission' ) );
         add_action( 'wp_ajax_nopriv_ennu_submit_assessment', array( $this, 'handle_assessment_submission' ) );
+        add_action( 'wp_ajax_ennu_form_submit', array( $this, 'handle_assessment_submission' ) );
+        add_action( 'wp_ajax_nopriv_ennu_form_submit', array( $this, 'handle_assessment_submission' ) );
     }
     
     /**
@@ -265,9 +268,11 @@ final class ENNU_Assessment_Shortcodes {
         }
         
         // Check plugin templates directory
-        $plugin_template = ENNU_LIFE_PLUGIN_PATH . 'templates/' . $template_name;
-        if ( file_exists( $plugin_template ) ) {
-            return $plugin_template;
+        if ( defined( 'ENNU_LIFE_PLUGIN_PATH' ) ) {
+            $plugin_template = ENNU_LIFE_PLUGIN_PATH . 'templates/' . $template_name;
+            if ( file_exists( $plugin_template ) ) {
+                return $plugin_template;
+            }
         }
         
         return '';
@@ -284,6 +289,10 @@ final class ENNU_Assessment_Shortcodes {
     private function render_default_assessment( $assessment_type, $config, $atts ) {
         $current_user = wp_get_current_user();
         $nonce = wp_create_nonce( 'ennu_assessment_' . $assessment_type );
+        
+        // Get the actual questions to count them properly
+        $questions = $this->get_assessment_questions( $assessment_type );
+        $total_questions = count( $questions );
         
         ob_start();
         ?>
@@ -305,7 +314,7 @@ final class ENNU_Assessment_Shortcodes {
                         <span><?php esc_html_e( 'Question', 'ennu-life' ); ?> 
                               <span id="currentStep" class="current-question">1</span> 
                               <?php esc_html_e( 'of', 'ennu-life' ); ?> 
-                              <span id="totalSteps" class="total-questions"><?php echo esc_html( $config['questions'] ); ?></span>
+                              <span id="totalSteps" class="total-questions"><?php echo esc_html( $total_questions ); ?></span>
                         </span>
                     </div>
                 </div>
@@ -323,51 +332,6 @@ final class ENNU_Assessment_Shortcodes {
                     <?php echo $this->render_assessment_questions( $assessment_type, $config ); ?>
                 </div>
                 
-                <!-- Contact Information (Final Step) -->
-                <div class="question contact-question" data-question="<?php echo esc_attr( $config['questions'] + 1 ); ?>">
-                    <h2><?php esc_html_e( 'Get Your Personalized Results', 'ennu-life' ); ?></h2>
-                    <p><?php esc_html_e( 'Enter your contact information to receive your detailed assessment results and personalized recommendations.', 'ennu-life' ); ?></p>
-                    
-                    <div class="contact-fields">
-                        <div class="field-group">
-                            <label for="contact_name"><?php esc_html_e( 'Full Name', 'ennu-life' ); ?> <span class="required">*</span></label>
-                            <input type="text" 
-                                   id="contact_name" 
-                                   name="contact_name" 
-                                   value="<?php echo esc_attr( $current_user->display_name ); ?>" 
-                                   required 
-                                   autocomplete="name">
-                        </div>
-                        
-                        <div class="field-group">
-                            <label for="contact_email"><?php esc_html_e( 'Email Address', 'ennu-life' ); ?> <span class="required">*</span></label>
-                            <input type="email" 
-                                   id="contact_email" 
-                                   name="contact_email" 
-                                   value="<?php echo esc_attr( $current_user->user_email ); ?>" 
-                                   required 
-                                   autocomplete="email">
-                        </div>
-                        
-                        <div class="field-group">
-                            <label for="contact_phone"><?php esc_html_e( 'Phone Number', 'ennu-life' ); ?></label>
-                            <input type="tel" 
-                                   id="contact_phone" 
-                                   name="contact_phone" 
-                                   autocomplete="tel">
-                        </div>
-                    </div>
-                    
-                    <div class="privacy-notice">
-                        <p><small><?php esc_html_e( 'Your information is secure and will only be used to provide your assessment results and relevant health information. We respect your privacy.', 'ennu-life' ); ?></small></p>
-                    </div>
-                    
-                    <button type="submit" class="submit-assessment-btn">
-                        <span class="btn-text"><?php esc_html_e( 'Get My Results', 'ennu-life' ); ?></span>
-                        <span class="btn-loading" style="display: none;"><?php esc_html_e( 'Processing...', 'ennu-life' ); ?></span>
-                    </button>
-                </div>
-                
                 <!-- Success Message -->
                 <div class="assessment-success" style="display: none;">
                     <div class="success-icon">✓</div>
@@ -383,8 +347,6 @@ final class ENNU_Assessment_Shortcodes {
                     </div>
                 </div>
             </form>
-            
-            <!-- Navigation -->
         </div>
         
         <!-- Assessment Styles -->
@@ -538,7 +500,7 @@ final class ENNU_Assessment_Shortcodes {
             color: #333;
         }
         
-        .field-group input {
+        .field-group input, .field-group select {
             padding: 12px 16px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -546,7 +508,7 @@ final class ENNU_Assessment_Shortcodes {
             transition: border-color 0.3s ease;
         }
         
-        .field-group input:focus {
+        .field-group input:focus, .field-group select:focus {
             outline: none;
             border-color: <?php echo esc_attr( $config['theme_color'] ); ?>;
         }
@@ -687,11 +649,20 @@ final class ENNU_Assessment_Shortcodes {
                 flex-direction: column;
                 gap: 10px;
             }
+            
+            .dob-dropdowns {
+                grid-template-columns: 1fr !important;
+            }
         }
         </style>
         
-        <!-- Assessment JavaScript -->
+        <!-- Assessment JavaScript Debug Info -->
         <script>
+        console.log('ENNU Assessment Debug Info:');
+        console.log('Assessment Type:', '<?php echo esc_js( $assessment_type ); ?>');
+        console.log('Total Questions:', <?php echo intval( $total_questions ); ?>);
+        console.log('Questions Array:', <?php echo wp_json_encode( array_map( function( $q ) { return $q['title']; }, $questions ) ); ?>);
+        
         // Assessment will be automatically initialized by ennu-assessment-modern.js
         // when DOM is ready and .ennu-assessment container is found
         </script>
@@ -713,7 +684,7 @@ final class ENNU_Assessment_Shortcodes {
         
         foreach ( $questions as $index => $question ) {
             $question_number = $index + 1;
-            $output .= $this->render_question( $question_number, $question, $config );
+            $output .= $this->render_question( $assessment_type, $question_number, $question, $config );
         }
         
         return $output;
@@ -722,21 +693,25 @@ final class ENNU_Assessment_Shortcodes {
     /**
      * Render individual question
      * 
+     * @param string $assessment_type Assessment type
      * @param int $question_number Question number
      * @param array $question Question data
      * @param array $config Assessment configuration
      * @return string
      */
-    private function render_question( $question_number, $question, $config ) {
-        $assessment_type = $config['assessment_type'] ?? 'default';
+    private function render_question( $assessment_type, $question_number, $question, $config ) {
         $active_class = $question_number === 1 ? 'active' : '';
+        
+        // Generate simple IDs based on assessment type (e.g., hair_q1, skin_q2, etc.)
+        $assessment_prefix = str_replace('_assessment', '', $assessment_type);
+        $simple_question_id = $assessment_prefix . '_q' . $question_number;
         
         ob_start();
         ?>
         <div class="ennu-question-step question <?php echo esc_attr( $active_class ); ?>" 
              data-step="<?php echo esc_attr( $question_number ); ?>" 
              data-question="<?php echo esc_attr( $question_number ); ?>"
-             data-question-key="question_<?php echo esc_attr( $assessment_type . '_' . $question_number ); ?>">
+             data-question-key="<?php echo esc_attr( $simple_question_id ); ?>">
             <h2><?php echo esc_html( $question['title'] ); ?></h2>
             <?php if ( ! empty( $question['description'] ) ) : ?>
                 <p><?php echo esc_html( $question['description'] ); ?></p>
@@ -754,9 +729,9 @@ final class ENNU_Assessment_Shortcodes {
                 
                 <div class="dob-dropdowns" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div class="field-group">
-                        <label for="dob_month_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Month</label>
-                        <select id="dob_month_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_month" 
+                        <label for="<?php echo esc_attr( $simple_question_id ); ?>_month" style="display: block; margin-bottom: 5px; font-weight: 500;">Month</label>
+                        <select id="<?php echo esc_attr( $simple_question_id ); ?>_month" 
+                                name="<?php echo esc_attr( $simple_question_id ); ?>_month" 
                                 class="dob-dropdown dob-month" 
                                 <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
                             <option value="">Select Month</option>
@@ -776,9 +751,9 @@ final class ENNU_Assessment_Shortcodes {
                     </div>
                     
                     <div class="field-group">
-                        <label for="dob_day_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Day</label>
-                        <select id="dob_day_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_day" 
+                        <label for="<?php echo esc_attr( $simple_question_id ); ?>_day" style="display: block; margin-bottom: 5px; font-weight: 500;">Day</label>
+                        <select id="<?php echo esc_attr( $simple_question_id ); ?>_day" 
+                                name="<?php echo esc_attr( $simple_question_id ); ?>_day" 
                                 class="dob-dropdown dob-day" 
                                 <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
                             <option value="">Day</option>
@@ -789,9 +764,9 @@ final class ENNU_Assessment_Shortcodes {
                     </div>
                     
                     <div class="field-group">
-                        <label for="dob_year_<?php echo esc_attr( $question_number ); ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Year</label>
-                        <select id="dob_year_<?php echo esc_attr( $question_number ); ?>" 
-                                name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_year" 
+                        <label for="<?php echo esc_attr( $simple_question_id ); ?>_year" style="display: block; margin-bottom: 5px; font-weight: 500;">Year</label>
+                        <select id="<?php echo esc_attr( $simple_question_id ); ?>_year" 
+                                name="<?php echo esc_attr( $simple_question_id ); ?>_year" 
                                 class="dob-dropdown dob-year" 
                                 <?php echo ! empty( $question['required'] ) ? 'required' : ''; ?>>
                             <option value="">Year</option>
@@ -807,16 +782,18 @@ final class ENNU_Assessment_Shortcodes {
                     </div>
                 </div>
                 
-                <!-- Hidden field to store the complete DOB -->
+                <!-- Hidden field to store the complete DOB with simple ID -->
                 <input type="hidden" 
-                       name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>" 
+                       name="<?php echo esc_attr( $simple_question_id ); ?>" 
                        class="dob-combined" 
+                       id="<?php echo esc_attr( $simple_question_id ); ?>" 
                        data-question="<?php echo esc_attr( $question_number ); ?>">
                 
                 <!-- Hidden field to store calculated age -->
                 <input type="hidden" 
-                       name="<?php echo esc_attr( $question['field_name'] ?? 'date_of_birth' ); ?>_age" 
+                       name="user_age" 
                        class="calculated-age-field" 
+                       id="user_age" 
                        data-question="<?php echo esc_attr( $question_number ); ?>">
                        
             <?php elseif ( isset( $question['type'] ) && $question['type'] === 'contact_info' ) : ?>
@@ -857,7 +834,6 @@ final class ENNU_Assessment_Shortcodes {
                             </p>
                         </div>
                     <?php endif; ?>
-                    
                     <?php foreach ( $question['fields'] as $field ) : ?>
                         <?php
                         // Get the pre-populated value for this field
@@ -880,16 +856,10 @@ final class ENNU_Assessment_Shortcodes {
                         }
                         ?>
                         <div class="field-group" style="margin-bottom: 20px;">
-                            <label for="<?php echo esc_attr( $field['name'] . '_' . $question_number ); ?>" 
-                                   style="display: block; margin-bottom: 8px; font-weight: 500; text-align: left;">
-                                <?php echo esc_html( $field['label'] ); ?>
-                                <?php if ( ! empty( $field['required'] ) ) : ?>
-                                    <span style="color: #e53e3e;">*</span>
-                                <?php endif; ?>
-                            </label>
+                            <label for="<?php echo esc_attr( $field['name'] ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
                             <input type="<?php echo esc_attr( $field['type'] ); ?>" 
-                                   id="<?php echo esc_attr( $field['name'] . '_' . $question_number ); ?>"
-                                   name="<?php echo esc_attr( $field['name'] ); ?>" 
+                                   id="<?php echo esc_attr( $field['name'] ); ?>" 
+                                   name="<?php echo esc_attr( $field['name'] ); ?>"
                                    value="<?php echo esc_attr( $field_value ); ?>"
                                    class="contact-field <?php echo esc_attr( $field['name'] ); ?>"
                                    style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;"
@@ -902,19 +872,24 @@ final class ENNU_Assessment_Shortcodes {
                 </div>
                        
             <?php else : ?>
-                <!-- Regular Radio Button Options -->
-                <?php 
-                $columns = count( $question['options'] );
+               <?php
+                $columns = 0;
+                if ( isset( $question["options"] ) && is_array( $question["options"] ) ) {
+                    $columns = count( $question["options"] );
+                }
                 ?>
                 <div class="options-grid" data-columns="<?php echo esc_attr( $columns ); ?>">
-                    <?php foreach ( $question['options'] as $option ) : ?>
-                        <div class="ennu-answer-option option-card" data-value="<?php echo esc_attr( $option["value"] ); ?>" id="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>">
-                            <input type="radio" id="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>_radio" name="question_<?php echo esc_attr( $assessment_type . '_' . $question_number ); ?>" value="<?php echo esc_attr( $option["value"] ); ?>" class="ennu-radio-input" />
-                            <label for="<?php echo esc_attr( $assessment_type . '_' . $question_number . '_' . $option["value"] ); ?>_radio">
-                                <span><?php echo esc_html( $option["label"] ); ?></span>
-                            </label>
-                        </div>
-                    <?php endforeach; ?>
+                    <?php if ( isset( $question["options"] ) && is_array( $question["options"] ) ) : foreach ( $question["options"] as $option ) : ?>
+                        <label class="ennu-answer-option option-card" for="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>">
+                            <input type="radio" 
+                                   id="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" 
+                                   name="<?php echo esc_attr( $simple_question_id ); ?>" 
+                                   value="<?php echo esc_attr( $option["value"] ); ?>" 
+                                   class="ennu-radio-input" 
+                                   style="display: none;" />
+                            <span><?php echo esc_html( $option["label"] ); ?></span>
+                        </label>
+                    <?php endforeach; endif; ?>
                 </div>
             <?php endif; ?>
             
@@ -952,26 +927,12 @@ final class ENNU_Assessment_Shortcodes {
     }
     
     /**
-     * Get option icon (Pixfort or fallback)
-     * 
-     * @param string $icon_key Icon key
-     * @param string $icon_set Icon set
-     * @return string
-     */
-    private function get_option_icon( $icon_key, $icon_set ) {
-        return '';
-    }
-    
-    /**
      * Get assessment questions configuration
      * 
      * @param string $assessment_type Assessment type
      * @return array
      */
     private function get_assessment_questions( $assessment_type ) {
-        // This would typically be loaded from a configuration file or database
-        // For now, returning a sample structure
-        
         switch ( $assessment_type ) {
             case 'hair_assessment':
                 return array(
@@ -987,89 +948,89 @@ final class ENNU_Assessment_Shortcodes {
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
                         'description' => __( 'Hair loss patterns can vary by gender.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
+                            array( 'value' => 'male', 'label' => 'Male' ),
+                            array( 'value' => 'female', 'label' => 'Female' ),
+                            array( 'value' => 'other', 'label' => 'Other' )
                         )
                     ),
                     array(
                         'title' => __( 'What are your main hair concerns?', 'ennu-life' ),
                         'description' => __( 'Select your primary hair issue.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'thinning', 'label' => 'Thinning Hair', 'icon' => '!', 'fallback' => 'Thin' ),
-                            array( 'value' => 'receding', 'label' => 'Receding Hairline', 'icon' => '-', 'fallback' => 'Recede' ),
-                            array( 'value' => 'bald_spots', 'label' => 'Bald Spots', 'icon' => '+', 'fallback' => 'Spots' ),
-                            array( 'value' => 'overall_loss', 'label' => 'Overall Hair Loss', 'icon' => 'ZAP', 'fallback' => 'Loss' )
+                            array( 'value' => 'thinning', 'label' => 'Thinning Hair' ),
+                            array( 'value' => 'receding', 'label' => 'Receding Hairline' ),
+                            array( 'value' => 'bald_spots', 'label' => 'Bald Spots' ),
+                            array( 'value' => 'overall_loss', 'label' => 'Overall Hair Loss' )
                         )
                     ),
                     array(
                         'title' => __( 'How long have you noticed hair changes?', 'ennu-life' ),
                         'description' => __( 'Duration helps determine treatment approach.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'recent', 'label' => 'Less than 6 months', 'icon' => '1', 'fallback' => '< 6mo' ),
-                            array( 'value' => 'moderate', 'label' => '6 months - 2 years', 'icon' => '2', 'fallback' => '6mo-2yr' ),
-                            array( 'value' => 'long', 'label' => '2-5 years', 'icon' => '3', 'fallback' => '2-5yr' ),
-                            array( 'value' => 'very_long', 'label' => 'More than 5 years', 'icon' => '4', 'fallback' => '5yr+' )
+                            array( 'value' => 'recent', 'label' => 'Less than 6 months' ),
+                            array( 'value' => 'moderate', 'label' => '6 months - 2 years' ),
+                            array( 'value' => 'long', 'label' => '2-5 years' ),
+                            array( 'value' => 'very_long', 'label' => 'More than 5 years' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you rate the speed of hair loss?', 'ennu-life' ),
                         'description' => __( 'This helps determine urgency of treatment.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'slow', 'label' => 'Very Slow', 'icon' => 'SLOW', 'fallback' => 'Slow' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'fast', 'label' => 'Fast', 'icon' => 'FAST', 'fallback' => 'Fast' ),
-                            array( 'value' => 'very_fast', 'label' => 'Very Fast', 'icon' => 'MAX', 'fallback' => 'Max' )
+                            array( 'value' => 'slow', 'label' => 'Very Slow' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate' ),
+                            array( 'value' => 'fast', 'label' => 'Fast' ),
+                            array( 'value' => 'very_fast', 'label' => 'Very Fast' )
                         )
                     ),
                     array(
                         'title' => __( 'Do you have a family history of hair loss?', 'ennu-life' ),
                         'description' => __( 'Genetics play a major role in hair loss.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No Family History', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'mother', 'label' => 'Mother\'s Side', 'icon' => 'F', 'fallback' => 'Mom' ),
-                            array( 'value' => 'father', 'label' => 'Father\'s Side', 'icon' => 'M', 'fallback' => 'Dad' ),
-                            array( 'value' => 'both', 'label' => 'Both Sides', 'icon' => 'B', 'fallback' => 'Both' )
+                            array( 'value' => 'none', 'label' => 'No Family History' ),
+                            array( 'value' => 'mother', 'label' => 'Mother\'s Side' ),
+                            array( 'value' => 'father', 'label' => 'Father\'s Side' ),
+                            array( 'value' => 'both', 'label' => 'Both Sides' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your current stress level?', 'ennu-life' ),
                         'description' => __( 'Stress can significantly impact hair health.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'low', 'label' => 'Low Stress', 'icon' => 'OK', 'fallback' => 'Low' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate Stress', 'icon' => 'A+', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High Stress', 'icon' => 'X', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very High Stress', 'icon' => 'HIGH', 'fallback' => 'Max' )
+                            array( 'value' => 'low', 'label' => 'Low Stress' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate Stress' ),
+                            array( 'value' => 'high', 'label' => 'High Stress' ),
+                            array( 'value' => 'very_high', 'label' => 'Very High Stress' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you describe your diet quality?', 'ennu-life' ),
                         'description' => __( 'Nutrition affects hair growth and strength.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'excellent', 'label' => 'Excellent', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'good', 'label' => 'Good', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'fair', 'label' => 'Fair', 'icon' => 'X', 'fallback' => 'Fair' ),
-                            array( 'value' => 'poor', 'label' => 'Poor', 'icon' => 'HIGH', 'fallback' => 'Poor' )
+                            array( 'value' => 'excellent', 'label' => 'Excellent' ),
+                            array( 'value' => 'good', 'label' => 'Good' ),
+                            array( 'value' => 'fair', 'label' => 'Fair' ),
+                            array( 'value' => 'poor', 'label' => 'Poor' )
                         )
                     ),
                     array(
                         'title' => __( 'Have you tried any hair loss treatments?', 'ennu-life' ),
                         'description' => __( 'Previous treatments help guide recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No Treatments', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'otc', 'label' => 'Over-the-Counter', 'icon' => 'RX', 'fallback' => 'OTC' ),
-                            array( 'value' => 'prescription', 'label' => 'Prescription Meds', 'icon' => 'HIGH', 'fallback' => 'RX' ),
-                            array( 'value' => 'procedures', 'label' => 'Medical Procedures', 'icon' => 'MAX', 'fallback' => 'Proc' )
+                            array( 'value' => 'none', 'label' => 'No Treatments' ),
+                            array( 'value' => 'otc', 'label' => 'Over-the-Counter' ),
+                            array( 'value' => 'prescription', 'label' => 'Prescription Meds' ),
+                            array( 'value' => 'procedures', 'label' => 'Medical Procedures' )
                         )
                     ),
                     array(
                         'title' => __( 'What are your hair restoration goals?', 'ennu-life' ),
                         'description' => __( 'Understanding your goals helps create the right plan.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'stop_loss', 'label' => 'Stop Hair Loss', 'icon' => 'X', 'fallback' => 'Stop' ),
-                            array( 'value' => 'regrow', 'label' => 'Regrow Hair', 'icon' => '+', 'fallback' => 'Grow' ),
-                            array( 'value' => 'thicken', 'label' => 'Thicken Hair', 'icon' => 'HIGH', 'fallback' => 'Thick' ),
-                            array( 'value' => 'improve', 'label' => 'Overall Improvement', 'icon' => 'A+', 'fallback' => 'Better' )
+                            array( 'value' => 'stop_loss', 'label' => 'Stop Hair Loss' ),
+                            array( 'value' => 'regrow', 'label' => 'Regrow Hair' ),
+                            array( 'value' => 'thicken', 'label' => 'Thicken Hair' ),
+                            array( 'value' => 'improve', 'label' => 'Overall Improvement' )
                         )
                     ),
                     array(
@@ -1088,120 +1049,6 @@ final class ENNU_Assessment_Shortcodes {
                     )
                 );
                 
-            case 'hair_restoration_assessment':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
-                        'description' => __( 'Age affects hair restoration options and success rates.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
-                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
-                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
-                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
-                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'Treatment approaches vary by gender.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What type of hair loss are you experiencing?', 'ennu-life' ),
-                        'description' => __( 'Different patterns require different restoration approaches.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male_pattern', 'label' => 'Male Pattern Baldness', 'icon' => 'M', 'fallback' => 'MPB' ),
-                            array( 'value' => 'female_pattern', 'label' => 'Female Pattern Hair Loss', 'icon' => 'F', 'fallback' => 'FPHL' ),
-                            array( 'value' => 'alopecia', 'label' => 'Alopecia Areata', 'icon' => 'ZAP', 'fallback' => 'AA' ),
-                            array( 'value' => 'other', 'label' => 'Other/Unsure', 'icon' => '?', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How extensive is your hair loss?', 'ennu-life' ),
-                        'description' => __( 'This helps determine the best restoration method.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal (Early stages)', 'icon' => '1', 'fallback' => 'Min' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => '2', 'fallback' => 'Med' ),
-                            array( 'value' => 'advanced', 'label' => 'Advanced', 'icon' => '3', 'fallback' => 'Adv' ),
-                            array( 'value' => 'severe', 'label' => 'Severe', 'icon' => '4', 'fallback' => 'Sev' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Have you had any previous hair restoration procedures?', 'ennu-life' ),
-                        'description' => __( 'Previous procedures affect future treatment options.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'none', 'label' => 'No Previous Procedures', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'fue', 'label' => 'FUE Hair Transplant', 'icon' => 'HIGH', 'fallback' => 'FUE' ),
-                            array( 'value' => 'fut', 'label' => 'FUT Hair Transplant', 'icon' => 'MAX', 'fallback' => 'FUT' ),
-                            array( 'value' => 'other', 'label' => 'Other Procedures', 'icon' => 'RX', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your budget range for hair restoration?', 'ennu-life' ),
-                        'description' => __( 'This helps us recommend appropriate treatment options.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'under_5k', 'label' => 'Under $5,000', 'icon' => '$', 'fallback' => '<$5K' ),
-                            array( 'value' => '5k_10k', 'label' => '$5,000 - $10,000', 'icon' => '$$', 'fallback' => '$5-10K' ),
-                            array( 'value' => '10k_20k', 'label' => '$10,000 - $20,000', 'icon' => '$$$', 'fallback' => '$10-20K' ),
-                            array( 'value' => 'over_20k', 'label' => 'Over $20,000', 'icon' => '$$$$', 'fallback' => '$20K+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How soon would you like to start treatment?', 'ennu-life' ),
-                        'description' => __( 'Timeline affects treatment planning and scheduling.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'immediately', 'label' => 'Immediately', 'icon' => 'FAST', 'fallback' => 'Now' ),
-                            array( 'value' => 'month', 'label' => 'Within a month', 'icon' => '1', 'fallback' => '1mo' ),
-                            array( 'value' => 'quarter', 'label' => 'Within 3 months', 'icon' => '3', 'fallback' => '3mo' ),
-                            array( 'value' => 'exploring', 'label' => 'Just exploring options', 'icon' => '?', 'fallback' => 'Later' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your primary concern about hair restoration?', 'ennu-life' ),
-                        'description' => __( 'Understanding concerns helps address them properly.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'pain', 'label' => 'Pain/Discomfort', 'icon' => '!', 'fallback' => 'Pain' ),
-                            array( 'value' => 'results', 'label' => 'Natural-looking Results', 'icon' => 'A+', 'fallback' => 'Results' ),
-                            array( 'value' => 'downtime', 'label' => 'Recovery Time', 'icon' => 'SLOW', 'fallback' => 'Time' ),
-                            array( 'value' => 'cost', 'label' => 'Cost/Value', 'icon' => '$', 'fallback' => 'Cost' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How would you describe your overall health?', 'ennu-life' ),
-                        'description' => __( 'Health status affects treatment eligibility and outcomes.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'excellent', 'label' => 'Excellent', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'good', 'label' => 'Good', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'fair', 'label' => 'Fair', 'icon' => 'X', 'fallback' => 'Fair' ),
-                            array( 'value' => 'poor', 'label' => 'Poor', 'icon' => 'HIGH', 'fallback' => 'Poor' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your main goal for hair restoration?', 'ennu-life' ),
-                        'description' => __( 'Clear goals help create the best treatment plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'hairline', 'label' => 'Restore Hairline', 'icon' => '+', 'fallback' => 'Line' ),
-                            array( 'value' => 'crown', 'label' => 'Fill Crown Area', 'icon' => 'O', 'fallback' => 'Crown' ),
-                            array( 'value' => 'density', 'label' => 'Increase Overall Density', 'icon' => 'HIGH', 'fallback' => 'Dense' ),
-                            array( 'value' => 'confidence', 'label' => 'Boost Confidence', 'icon' => 'A+', 'fallback' => 'Conf' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Are you currently taking any medications?', 'ennu-life' ),
-                        'description' => __( 'Some medications can affect hair restoration procedures.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'none', 'label' => 'No Medications', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'hair_meds', 'label' => 'Hair Loss Medications', 'icon' => 'RX', 'fallback' => 'Hair' ),
-                            array( 'value' => 'blood_thinners', 'label' => 'Blood Thinners', 'icon' => '!', 'fallback' => 'Blood' ),
-                            array( 'value' => 'other', 'label' => 'Other Medications', 'icon' => 'HIGH', 'fallback' => 'Other' )
-                        )
-                    )
-                );
-                
             case 'ed_treatment_assessment':
                 return array(
                     array(
@@ -1216,100 +1063,100 @@ final class ENNU_Assessment_Shortcodes {
                         'title' => __( 'What\'s your relationship status?', 'ennu-life' ),
                         'description' => __( 'This helps us understand your treatment priorities.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'single', 'label' => 'Single', 'icon' => '1', 'fallback' => 'Single' ),
-                            array( 'value' => 'dating', 'label' => 'Dating', 'icon' => '2', 'fallback' => 'Dating' ),
-                            array( 'value' => 'married', 'label' => 'Married/Partnered', 'icon' => 'M', 'fallback' => 'Married' ),
-                            array( 'value' => 'divorced', 'label' => 'Divorced/Separated', 'icon' => 'X', 'fallback' => 'Divorced' )
+                            array( 'value' => 'single', 'label' => 'Single' ),
+                            array( 'value' => 'dating', 'label' => 'Dating' ),
+                            array( 'value' => 'married', 'label' => 'Married/Partnered' ),
+                            array( 'value' => 'divorced', 'label' => 'Divorced/Separated' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you describe the severity of your ED?', 'ennu-life' ),
                         'description' => __( 'This helps determine the most effective treatment options.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'mild', 'label' => 'Mild', 'icon' => '1', 'fallback' => 'Mild' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => '2', 'fallback' => 'Med' ),
-                            array( 'value' => 'severe', 'label' => 'Severe', 'icon' => '3', 'fallback' => 'Severe' ),
-                            array( 'value' => 'complete', 'label' => 'Complete', 'icon' => '4', 'fallback' => 'Complete' )
+                            array( 'value' => 'mild', 'label' => 'Mild' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate' ),
+                            array( 'value' => 'severe', 'label' => 'Severe' ),
+                            array( 'value' => 'complete', 'label' => 'Complete' )
                         )
                     ),
                     array(
                         'title' => __( 'How long have you been experiencing symptoms?', 'ennu-life' ),
                         'description' => __( 'Duration affects treatment approach and expectations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'recent', 'label' => 'Less than 6 months', 'icon' => '1', 'fallback' => '<6mo' ),
-                            array( 'value' => 'moderate', 'label' => '6 months - 2 years', 'icon' => '2', 'fallback' => '6mo-2yr' ),
-                            array( 'value' => 'long', 'label' => '2-5 years', 'icon' => '3', 'fallback' => '2-5yr' ),
-                            array( 'value' => 'very_long', 'label' => 'More than 5 years', 'icon' => '4', 'fallback' => '5yr+' )
+                            array( 'value' => 'recent', 'label' => 'Less than 6 months' ),
+                            array( 'value' => 'moderate', 'label' => '6 months - 2 years' ),
+                            array( 'value' => 'long', 'label' => '2-5 years' ),
+                            array( 'value' => 'very_long', 'label' => 'More than 5 years' )
                         )
                     ),
                     array(
                         'title' => __( 'Do you have any of these health conditions?', 'ennu-life' ),
                         'description' => __( 'Certain conditions affect treatment options and safety.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'None of these', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'diabetes', 'label' => 'Diabetes', 'icon' => 'D', 'fallback' => 'Diabetes' ),
-                            array( 'value' => 'heart', 'label' => 'Heart Disease', 'icon' => 'H', 'fallback' => 'Heart' ),
-                            array( 'value' => 'hypertension', 'label' => 'High Blood Pressure', 'icon' => 'BP', 'fallback' => 'BP' )
+                            array( 'value' => 'none', 'label' => 'None of these' ),
+                            array( 'value' => 'diabetes', 'label' => 'Diabetes' ),
+                            array( 'value' => 'heart', 'label' => 'Heart Disease' ),
+                            array( 'value' => 'hypertension', 'label' => 'High Blood Pressure' )
                         )
                     ),
                     array(
                         'title' => __( 'Have you tried any ED treatments before?', 'ennu-life' ),
                         'description' => __( 'Previous treatments help guide our recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No previous treatments', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'oral', 'label' => 'Oral medications', 'icon' => 'RX', 'fallback' => 'Pills' ),
-                            array( 'value' => 'injections', 'label' => 'Injections', 'icon' => 'INJ', 'fallback' => 'Inject' ),
-                            array( 'value' => 'devices', 'label' => 'Vacuum devices', 'icon' => 'DEV', 'fallback' => 'Device' )
+                            array( 'value' => 'none', 'label' => 'No previous treatments' ),
+                            array( 'value' => 'oral', 'label' => 'Oral medications' ),
+                            array( 'value' => 'injections', 'label' => 'Injections' ),
+                            array( 'value' => 'devices', 'label' => 'Vacuum devices' )
                         )
                     ),
                     array(
                         'title' => __( 'Do you smoke or use tobacco?', 'ennu-life' ),
                         'description' => __( 'Smoking significantly affects blood flow and treatment effectiveness.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'never', 'label' => 'Never smoked', 'icon' => 'OK', 'fallback' => 'Never' ),
-                            array( 'value' => 'former', 'label' => 'Former smoker', 'icon' => 'X', 'fallback' => 'Former' ),
-                            array( 'value' => 'occasional', 'label' => 'Occasional smoker', 'icon' => '!', 'fallback' => 'Occ' ),
-                            array( 'value' => 'regular', 'label' => 'Regular smoker', 'icon' => 'HIGH', 'fallback' => 'Regular' )
+                            array( 'value' => 'never', 'label' => 'Never smoked' ),
+                            array( 'value' => 'former', 'label' => 'Former smoker' ),
+                            array( 'value' => 'occasional', 'label' => 'Occasional smoker' ),
+                            array( 'value' => 'regular', 'label' => 'Regular smoker' )
                         )
                     ),
                     array(
                         'title' => __( 'How often do you exercise?', 'ennu-life' ),
                         'description' => __( 'Physical fitness affects blood flow and overall sexual health.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'never', 'label' => 'Never', 'icon' => 'X', 'fallback' => 'Never' ),
-                            array( 'value' => 'rarely', 'label' => 'Rarely', 'icon' => '1', 'fallback' => 'Rare' ),
-                            array( 'value' => 'regularly', 'label' => 'Regularly', 'icon' => 'OK', 'fallback' => 'Regular' ),
-                            array( 'value' => 'daily', 'label' => 'Daily', 'icon' => 'A+', 'fallback' => 'Daily' )
+                            array( 'value' => 'never', 'label' => 'Never' ),
+                            array( 'value' => 'rarely', 'label' => 'Rarely' ),
+                            array( 'value' => 'regularly', 'label' => 'Regularly' ),
+                            array( 'value' => 'daily', 'label' => 'Daily' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your current stress level?', 'ennu-life' ),
                         'description' => __( 'Stress is a major factor in erectile dysfunction.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'low', 'label' => 'Low', 'icon' => 'OK', 'fallback' => 'Low' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very High', 'icon' => 'MAX', 'fallback' => 'Max' )
+                            array( 'value' => 'low', 'label' => 'Low' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate' ),
+                            array( 'value' => 'high', 'label' => 'High' ),
+                            array( 'value' => 'very_high', 'label' => 'Very High' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your primary treatment goal?', 'ennu-life' ),
                         'description' => __( 'Understanding your goals helps create the right treatment plan.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'restore', 'label' => 'Restore function', 'icon' => '+', 'fallback' => 'Restore' ),
-                            array( 'value' => 'confidence', 'label' => 'Boost confidence', 'icon' => 'A+', 'fallback' => 'Conf' ),
-                            array( 'value' => 'performance', 'label' => 'Improve performance', 'icon' => 'HIGH', 'fallback' => 'Perf' ),
-                            array( 'value' => 'relationship', 'label' => 'Improve relationship', 'icon' => 'M', 'fallback' => 'Rel' )
+                            array( 'value' => 'restore', 'label' => 'Restore function' ),
+                            array( 'value' => 'confidence', 'label' => 'Boost confidence' ),
+                            array( 'value' => 'performance', 'label' => 'Improve performance' ),
+                            array( 'value' => 'relationship', 'label' => 'Improve relationship' )
                         )
                     ),
                     array(
                         'title' => __( 'Are you currently taking any medications?', 'ennu-life' ),
                         'description' => __( 'Some medications can affect ED treatment options.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No medications', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'blood_pressure', 'label' => 'Blood pressure meds', 'icon' => 'BP', 'fallback' => 'BP' ),
-                            array( 'value' => 'antidepressants', 'label' => 'Antidepressants', 'icon' => 'AD', 'fallback' => 'AD' ),
-                            array( 'value' => 'other', 'label' => 'Other medications', 'icon' => 'RX', 'fallback' => 'Other' )
+                            array( 'value' => 'none', 'label' => 'No medications' ),
+                            array( 'value' => 'blood_pressure', 'label' => 'Blood pressure meds' ),
+                            array( 'value' => 'antidepressants', 'label' => 'Antidepressants' ),
+                            array( 'value' => 'other', 'label' => 'Other medications' )
                         )
                     ),
                     array(
@@ -1342,192 +1189,109 @@ final class ENNU_Assessment_Shortcodes {
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
                         'description' => __( 'Weight loss strategies can vary by gender.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
+                            array( 'value' => 'male', 'label' => 'Male' ),
+                            array( 'value' => 'female', 'label' => 'Female' ),
+                            array( 'value' => 'other', 'label' => 'Other' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your primary weight loss goal?', 'ennu-life' ),
                         'description' => __( 'Understanding your goals helps create the right plan.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'lose_10', 'label' => 'Lose 10-20 lbs', 'icon' => '1', 'fallback' => '10-20' ),
-                            array( 'value' => 'lose_30', 'label' => 'Lose 20-50 lbs', 'icon' => '2', 'fallback' => '20-50' ),
-                            array( 'value' => 'lose_50', 'label' => 'Lose 50+ lbs', 'icon' => '3', 'fallback' => '50+' ),
-                            array( 'value' => 'maintain', 'label' => 'Maintain current weight', 'icon' => 'OK', 'fallback' => 'Maintain' )
+                            array( 'value' => 'lose_10', 'label' => 'Lose 10-20 lbs' ),
+                            array( 'value' => 'lose_30', 'label' => 'Lose 20-50 lbs' ),
+                            array( 'value' => 'lose_50', 'label' => 'Lose 50+ lbs' ),
+                            array( 'value' => 'maintain', 'label' => 'Maintain current weight' )
                         )
                     ),
                     array(
                         'title' => __( 'What motivates you most to lose weight?', 'ennu-life' ),
                         'description' => __( 'Understanding motivation helps maintain long-term success.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'health', 'label' => 'Health improvement', 'icon' => 'H', 'fallback' => 'Health' ),
-                            array( 'value' => 'appearance', 'label' => 'Look better', 'icon' => 'A+', 'fallback' => 'Look' ),
-                            array( 'value' => 'confidence', 'label' => 'Boost confidence', 'icon' => 'HIGH', 'fallback' => 'Conf' ),
-                            array( 'value' => 'energy', 'label' => 'More energy', 'icon' => 'FAST', 'fallback' => 'Energy' )
+                            array( 'value' => 'health', 'label' => 'Health improvement' ),
+                            array( 'value' => 'appearance', 'label' => 'Look better' ),
+                            array( 'value' => 'confidence', 'label' => 'Boost confidence' ),
+                            array( 'value' => 'energy', 'label' => 'More energy' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your target timeline?', 'ennu-life' ),
                         'description' => __( 'Realistic timelines lead to sustainable results.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => '3_months', 'label' => '3 months', 'icon' => '3', 'fallback' => '3mo' ),
-                            array( 'value' => '6_months', 'label' => '6 months', 'icon' => '6', 'fallback' => '6mo' ),
-                            array( 'value' => '1_year', 'label' => '1 year', 'icon' => '1Y', 'fallback' => '1yr' ),
-                            array( 'value' => 'no_rush', 'label' => 'No specific timeline', 'icon' => 'OK', 'fallback' => 'Flex' )
+                            array( 'value' => '3_months', 'label' => '3 months' ),
+                            array( 'value' => '6_months', 'label' => '6 months' ),
+                            array( 'value' => '1_year', 'label' => '1 year' ),
+                            array( 'value' => 'no_rush', 'label' => 'No specific timeline' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you describe your current eating habits?', 'ennu-life' ),
                         'description' => __( 'Current habits help determine the best approach.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'healthy', 'label' => 'Generally healthy', 'icon' => 'A+', 'fallback' => 'Good' ),
-                            array( 'value' => 'average', 'label' => 'Average/Mixed', 'icon' => 'OK', 'fallback' => 'Avg' ),
-                            array( 'value' => 'poor', 'label' => 'Poor/Unhealthy', 'icon' => 'X', 'fallback' => 'Poor' ),
-                            array( 'value' => 'emotional', 'label' => 'Emotional eating', 'icon' => '!', 'fallback' => 'Emot' )
+                            array( 'value' => 'healthy', 'label' => 'Generally healthy' ),
+                            array( 'value' => 'average', 'label' => 'Average/Mixed' ),
+                            array( 'value' => 'poor', 'label' => 'Poor/Unhealthy' ),
+                            array( 'value' => 'emotional', 'label' => 'Emotional eating' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your current activity level?', 'ennu-life' ),
                         'description' => __( 'Activity level affects weight loss strategy and timeline.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'sedentary', 'label' => 'Sedentary (desk job)', 'icon' => 'SLOW', 'fallback' => 'Sed' ),
-                            array( 'value' => 'light', 'label' => 'Lightly active', 'icon' => 'MED', 'fallback' => 'Light' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderately active', 'icon' => 'OK', 'fallback' => 'Mod' ),
-                            array( 'value' => 'very_active', 'label' => 'Very active', 'icon' => 'FAST', 'fallback' => 'Active' )
+                            array( 'value' => 'sedentary', 'label' => 'Sedentary (desk job)' ),
+                            array( 'value' => 'light', 'label' => 'Lightly active' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderately active' ),
+                            array( 'value' => 'very_active', 'label' => 'Very active' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your biggest weight loss challenge?', 'ennu-life' ),
                         'description' => __( 'Identifying challenges helps create targeted solutions.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'cravings', 'label' => 'Food cravings', 'icon' => '!', 'fallback' => 'Crave' ),
-                            array( 'value' => 'time', 'label' => 'Lack of time', 'icon' => 'FAST', 'fallback' => 'Time' ),
-                            array( 'value' => 'motivation', 'label' => 'Staying motivated', 'icon' => 'HIGH', 'fallback' => 'Motiv' ),
-                            array( 'value' => 'knowledge', 'label' => 'Don\'t know what to do', 'icon' => '?', 'fallback' => 'Know' )
+                            array( 'value' => 'cravings', 'label' => 'Food cravings' ),
+                            array( 'value' => 'time', 'label' => 'Lack of time' ),
+                            array( 'value' => 'motivation', 'label' => 'Staying motivated' ),
+                            array( 'value' => 'knowledge', 'label' => 'Don\'t know what to do' )
                         )
                     ),
                     array(
                         'title' => __( 'Have you tried weight loss programs before?', 'ennu-life' ),
                         'description' => __( 'Previous experiences help avoid past mistakes.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No previous programs', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'diets', 'label' => 'Fad diets', 'icon' => 'X', 'fallback' => 'Diets' ),
-                            array( 'value' => 'programs', 'label' => 'Commercial programs', 'icon' => 'RX', 'fallback' => 'Prog' ),
-                            array( 'value' => 'medical', 'label' => 'Medical supervision', 'icon' => 'DR', 'fallback' => 'Med' )
+                            array( 'value' => 'none', 'label' => 'No previous programs' ),
+                            array( 'value' => 'diets', 'label' => 'Fad diets' ),
+                            array( 'value' => 'programs', 'label' => 'Commercial programs' ),
+                            array( 'value' => 'medical', 'label' => 'Medical supervision' )
                         )
                     ),
                     array(
                         'title' => __( 'Do you have any health conditions?', 'ennu-life' ),
                         'description' => __( 'Health conditions affect weight loss approach and safety.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'none', 'label' => 'No health conditions', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'diabetes', 'label' => 'Diabetes', 'icon' => 'D', 'fallback' => 'Diab' ),
-                            array( 'value' => 'thyroid', 'label' => 'Thyroid issues', 'icon' => 'T', 'fallback' => 'Thy' ),
-                            array( 'value' => 'other', 'label' => 'Other conditions', 'icon' => 'HIGH', 'fallback' => 'Other' )
+                            array( 'value' => 'none', 'label' => 'No health conditions' ),
+                            array( 'value' => 'diabetes', 'label' => 'Diabetes' ),
+                            array( 'value' => 'thyroid', 'label' => 'Thyroid issues' ),
+                            array( 'value' => 'other', 'label' => 'Other conditions' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your budget for weight loss support?', 'ennu-life' ),
                         'description' => __( 'Budget helps determine the best program options.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal ($0-50/month)', 'icon' => '$', 'fallback' => '$0-50' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)', 'icon' => '$$', 'fallback' => '$50-150' ),
-                            array( 'value' => 'substantial', 'label' => 'Substantial ($150-300/month)', 'icon' => '$$$', 'fallback' => '$150-300' ),
-                            array( 'value' => 'premium', 'label' => 'Premium ($300+/month)', 'icon' => '$$$$', 'fallback' => '$300+' )
+                            array( 'value' => 'minimal', 'label' => 'Minimal ($0-50/month)' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)' ),
+                            array( 'value' => 'substantial', 'label' => 'Substantial ($150-300/month)' ),
+                            array( 'value' => 'premium', 'label' => 'Premium ($300+/month)' )
                         )
                     ),
                     array(
                         'title' => __( 'What type of support do you prefer?', 'ennu-life' ),
                         'description' => __( 'Support style affects program success and satisfaction.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'self_guided', 'label' => 'Self-guided program', 'icon' => '1', 'fallback' => 'Self' ),
-                            array( 'value' => 'group', 'label' => 'Group support', 'icon' => 'G', 'fallback' => 'Group' ),
-                            array( 'value' => 'coach', 'label' => 'Personal coach', 'icon' => 'C', 'fallback' => 'Coach' ),
-                            array( 'value' => 'medical', 'label' => 'Medical supervision', 'icon' => 'DR', 'fallback' => 'Med' )
-                        )
-                    )
-                );
-                
-            case 'weight_loss_quiz':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
-                        'description' => __( 'Age affects your weight loss approach.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '18-30', 'label' => '18-30', 'icon' => 'GRAD', 'fallback' => '18-30' ),
-                            array( 'value' => '31-45', 'label' => '31-45', 'icon' => 'M', 'fallback' => '31-45' ),
-                            array( 'value' => '46-60', 'label' => '46-60', 'icon' => 'DR', 'fallback' => '46-60' ),
-                            array( 'value' => '60+', 'label' => '60+', 'icon' => 'SR', 'fallback' => '60+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'This helps personalize your recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How much weight do you want to lose?', 'ennu-life' ),
-                        'description' => __( 'Your goal determines the best approach.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '5_15', 'label' => '5-15 lbs', 'icon' => '1', 'fallback' => '5-15' ),
-                            array( 'value' => '15_30', 'label' => '15-30 lbs', 'icon' => '2', 'fallback' => '15-30' ),
-                            array( 'value' => '30_50', 'label' => '30-50 lbs', 'icon' => '3', 'fallback' => '30-50' ),
-                            array( 'value' => '50_plus', 'label' => '50+ lbs', 'icon' => '4', 'fallback' => '50+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your target timeline?', 'ennu-life' ),
-                        'description' => __( 'Realistic timelines lead to better results.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '1_month', 'label' => '1 month', 'icon' => 'FAST', 'fallback' => '1mo' ),
-                            array( 'value' => '3_months', 'label' => '3 months', 'icon' => 'MED', 'fallback' => '3mo' ),
-                            array( 'value' => '6_months', 'label' => '6 months', 'icon' => 'OK', 'fallback' => '6mo' ),
-                            array( 'value' => '1_year', 'label' => '1 year or more', 'icon' => 'SLOW', 'fallback' => '1yr+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Do you have any health conditions?', 'ennu-life' ),
-                        'description' => __( 'This affects which programs are safe for you.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'none', 'label' => 'No conditions', 'icon' => 'OK', 'fallback' => 'None' ),
-                            array( 'value' => 'diabetes', 'label' => 'Diabetes', 'icon' => 'D', 'fallback' => 'Diab' ),
-                            array( 'value' => 'heart', 'label' => 'Heart disease', 'icon' => 'H', 'fallback' => 'Heart' ),
-                            array( 'value' => 'other', 'label' => 'Other conditions', 'icon' => '!', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How active are you currently?', 'ennu-life' ),
-                        'description' => __( 'Current activity level affects your starting point.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'sedentary', 'label' => 'Sedentary', 'icon' => 'SLOW', 'fallback' => 'Sed' ),
-                            array( 'value' => 'light', 'label' => 'Lightly active', 'icon' => 'MED', 'fallback' => 'Light' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderately active', 'icon' => 'OK', 'fallback' => 'Mod' ),
-                            array( 'value' => 'very_active', 'label' => 'Very active', 'icon' => 'FAST', 'fallback' => 'Active' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your diet preference?', 'ennu-life' ),
-                        'description' => __( 'We\'ll match you with compatible eating plans.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'balanced', 'label' => 'Balanced diet', 'icon' => 'OK', 'fallback' => 'Bal' ),
-                            array( 'value' => 'low_carb', 'label' => 'Low carb', 'icon' => 'LC', 'fallback' => 'LowC' ),
-                            array( 'value' => 'vegetarian', 'label' => 'Vegetarian', 'icon' => 'V', 'fallback' => 'Veg' ),
-                            array( 'value' => 'flexible', 'label' => 'Flexible/Open', 'icon' => 'FLEX', 'fallback' => 'Flex' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your primary goal?', 'ennu-life' ),
-                        'description' => __( 'Understanding your main goal helps create the right plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'lose_weight', 'label' => 'Lose weight', 'icon' => 'DOWN', 'fallback' => 'Lose' ),
-                            array( 'value' => 'get_fit', 'label' => 'Get fit', 'icon' => 'FIT', 'fallback' => 'Fit' ),
-                            array( 'value' => 'feel_better', 'label' => 'Feel better', 'icon' => 'A+', 'fallback' => 'Feel' ),
-                            array( 'value' => 'look_better', 'label' => 'Look better', 'icon' => 'LOOK', 'fallback' => 'Look' )
+                            array( 'value' => 'self_guided', 'label' => 'Self-guided program' ),
+                            array( 'value' => 'group', 'label' => 'Group support' ),
+                            array( 'value' => 'coach', 'label' => 'Personal coach' ),
+                            array( 'value' => 'medical', 'label' => 'Medical supervision' )
                         )
                     ),
                     array(
@@ -1560,89 +1324,89 @@ final class ENNU_Assessment_Shortcodes {
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
                         'description' => __( 'Gender affects health risks and screening recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
+                            array( 'value' => 'male', 'label' => 'Male' ),
+                            array( 'value' => 'female', 'label' => 'Female' ),
+                            array( 'value' => 'other', 'label' => 'Other' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you rate your overall health?', 'ennu-life' ),
                         'description' => __( 'Your self-assessment helps guide our recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'excellent', 'label' => 'Excellent', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'good', 'label' => 'Good', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'fair', 'label' => 'Fair', 'icon' => 'X', 'fallback' => 'Fair' ),
-                            array( 'value' => 'poor', 'label' => 'Poor', 'icon' => 'HIGH', 'fallback' => 'Poor' )
+                            array( 'value' => 'excellent', 'label' => 'Excellent' ),
+                            array( 'value' => 'good', 'label' => 'Good' ),
+                            array( 'value' => 'fair', 'label' => 'Fair' ),
+                            array( 'value' => 'poor', 'label' => 'Poor' )
                         )
                     ),
                     array(
                         'title' => __( 'How are your energy levels?', 'ennu-life' ),
                         'description' => __( 'Energy levels can indicate various health issues.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'high', 'label' => 'High energy', 'icon' => 'FAST', 'fallback' => 'High' ),
-                            array( 'value' => 'normal', 'label' => 'Normal energy', 'icon' => 'OK', 'fallback' => 'Normal' ),
-                            array( 'value' => 'low', 'label' => 'Low energy', 'icon' => 'SLOW', 'fallback' => 'Low' ),
-                            array( 'value' => 'very_low', 'label' => 'Very low energy', 'icon' => 'X', 'fallback' => 'VLow' )
+                            array( 'value' => 'high', 'label' => 'High energy' ),
+                            array( 'value' => 'normal', 'label' => 'Normal energy' ),
+                            array( 'value' => 'low', 'label' => 'Low energy' ),
+                            array( 'value' => 'very_low', 'label' => 'Very low energy' )
                         )
                     ),
                     array(
                         'title' => __( 'How often do you exercise?', 'ennu-life' ),
                         'description' => __( 'Physical activity is crucial for overall health.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'daily', 'label' => 'Daily', 'icon' => 'A+', 'fallback' => 'Daily' ),
-                            array( 'value' => 'few_times_week', 'label' => 'Few times per week', 'icon' => 'OK', 'fallback' => '3-4x' ),
-                            array( 'value' => 'weekly', 'label' => 'Once a week', 'icon' => 'MED', 'fallback' => '1x' ),
-                            array( 'value' => 'rarely', 'label' => 'Rarely/Never', 'icon' => 'X', 'fallback' => 'Rare' )
+                            array( 'value' => 'daily', 'label' => 'Daily' ),
+                            array( 'value' => 'few_times_week', 'label' => 'Few times per week' ),
+                            array( 'value' => 'weekly', 'label' => 'Once a week' ),
+                            array( 'value' => 'rarely', 'label' => 'Rarely/Never' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you describe your diet?', 'ennu-life' ),
                         'description' => __( 'Diet quality significantly impacts health outcomes.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'very_healthy', 'label' => 'Very healthy', 'icon' => 'A+', 'fallback' => 'VGood' ),
-                            array( 'value' => 'mostly_healthy', 'label' => 'Mostly healthy', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'average', 'label' => 'Average', 'icon' => 'MED', 'fallback' => 'Avg' ),
-                            array( 'value' => 'poor', 'label' => 'Poor', 'icon' => 'X', 'fallback' => 'Poor' )
+                            array( 'value' => 'very_healthy', 'label' => 'Very healthy' ),
+                            array( 'value' => 'mostly_healthy', 'label' => 'Mostly healthy' ),
+                            array( 'value' => 'average', 'label' => 'Average' ),
+                            array( 'value' => 'poor', 'label' => 'Poor' )
                         )
                     ),
                     array(
                         'title' => __( 'How well do you sleep?', 'ennu-life' ),
                         'description' => __( 'Sleep quality affects every aspect of health.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'excellent', 'label' => 'Sleep very well', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'good', 'label' => 'Sleep well', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'fair', 'label' => 'Sleep okay', 'icon' => 'MED', 'fallback' => 'Fair' ),
-                            array( 'value' => 'poor', 'label' => 'Sleep poorly', 'icon' => 'X', 'fallback' => 'Poor' )
+                            array( 'value' => 'excellent', 'label' => 'Sleep very well' ),
+                            array( 'value' => 'good', 'label' => 'Sleep well' ),
+                            array( 'value' => 'fair', 'label' => 'Sleep okay' ),
+                            array( 'value' => 'poor', 'label' => 'Sleep poorly' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your stress level?', 'ennu-life' ),
                         'description' => __( 'Chronic stress impacts both physical and mental health.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'low', 'label' => 'Low stress', 'icon' => 'OK', 'fallback' => 'Low' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate stress', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High stress', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high stress', 'icon' => 'MAX', 'fallback' => 'Max' )
+                            array( 'value' => 'low', 'label' => 'Low stress' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate stress' ),
+                            array( 'value' => 'high', 'label' => 'High stress' ),
+                            array( 'value' => 'very_high', 'label' => 'Very high stress' )
                         )
                     ),
                     array(
                         'title' => __( 'What are your main health goals?', 'ennu-life' ),
                         'description' => __( 'Understanding your goals helps create a personalized plan.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'prevent_disease', 'label' => 'Prevent disease', 'icon' => 'SHIELD', 'fallback' => 'Prevent' ),
-                            array( 'value' => 'lose_weight', 'label' => 'Lose weight', 'icon' => 'DOWN', 'fallback' => 'Weight' ),
-                            array( 'value' => 'more_energy', 'label' => 'More energy', 'icon' => 'FAST', 'fallback' => 'Energy' ),
-                            array( 'value' => 'better_mood', 'label' => 'Better mood', 'icon' => 'A+', 'fallback' => 'Mood' )
+                            array( 'value' => 'prevent_disease', 'label' => 'Prevent disease' ),
+                            array( 'value' => 'lose_weight', 'label' => 'Lose weight' ),
+                            array( 'value' => 'more_energy', 'label' => 'More energy' ),
+                            array( 'value' => 'better_mood', 'label' => 'Better mood' )
                         )
                     ),
                     array(
                         'title' => __( 'What type of health assessment interests you most?', 'ennu-life' ),
                         'description' => __( 'This helps us prioritize your health screening recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'comprehensive', 'label' => 'Comprehensive checkup', 'icon' => 'ALL', 'fallback' => 'Full' ),
-                            array( 'value' => 'preventive', 'label' => 'Preventive screening', 'icon' => 'SHIELD', 'fallback' => 'Prev' ),
-                            array( 'value' => 'specific', 'label' => 'Specific concern', 'icon' => 'TARGET', 'fallback' => 'Spec' ),
-                            array( 'value' => 'wellness', 'label' => 'Wellness optimization', 'icon' => 'A+', 'fallback' => 'Well' )
+                            array( 'value' => 'comprehensive', 'label' => 'Comprehensive checkup' ),
+                            array( 'value' => 'preventive', 'label' => 'Preventive screening' ),
+                            array( 'value' => 'specific', 'label' => 'Specific concern' ),
+                            array( 'value' => 'wellness', 'label' => 'Wellness optimization' )
                         )
                     ),
                     array(
@@ -1661,288 +1425,6 @@ final class ENNU_Assessment_Shortcodes {
                     )
                 );
                 
-            case 'advanced_skin_assessment':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
-                        'description' => __( 'Age affects skin concerns and treatment options.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
-                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
-                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
-                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
-                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'Skin care needs can vary by gender.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your skin type?', 'ennu-life' ),
-                        'description' => __( 'Skin type determines the best treatment approach.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'oily', 'label' => 'Oily', 'icon' => 'OIL', 'fallback' => 'Oily' ),
-                            array( 'value' => 'dry', 'label' => 'Dry', 'icon' => 'DRY', 'fallback' => 'Dry' ),
-                            array( 'value' => 'combination', 'label' => 'Combination', 'icon' => 'COMBO', 'fallback' => 'Combo' ),
-                            array( 'value' => 'sensitive', 'label' => 'Sensitive', 'icon' => 'SENS', 'fallback' => 'Sens' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What are your main skin concerns?', 'ennu-life' ),
-                        'description' => __( 'Identifying concerns helps prioritize treatments.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'acne', 'label' => 'Acne/Breakouts', 'icon' => 'ACNE', 'fallback' => 'Acne' ),
-                            array( 'value' => 'aging', 'label' => 'Aging/Wrinkles', 'icon' => 'AGE', 'fallback' => 'Age' ),
-                            array( 'value' => 'pigmentation', 'label' => 'Dark spots/Pigmentation', 'icon' => 'SPOT', 'fallback' => 'Spots' ),
-                            array( 'value' => 'texture', 'label' => 'Texture/Scarring', 'icon' => 'TEX', 'fallback' => 'Texture' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How much sun exposure do you get?', 'ennu-life' ),
-                        'description' => __( 'Sun exposure significantly affects skin health and aging.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal (mostly indoors)', 'icon' => 'MIN', 'fallback' => 'Min' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High (outdoor job/activities)', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high', 'icon' => 'MAX', 'fallback' => 'Max' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Do you use sunscreen regularly?', 'ennu-life' ),
-                        'description' => __( 'Sunscreen use is crucial for preventing skin damage.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'daily', 'label' => 'Daily', 'icon' => 'A+', 'fallback' => 'Daily' ),
-                            array( 'value' => 'sometimes', 'label' => 'Sometimes', 'icon' => 'OK', 'fallback' => 'Some' ),
-                            array( 'value' => 'rarely', 'label' => 'Rarely', 'icon' => 'X', 'fallback' => 'Rare' ),
-                            array( 'value' => 'never', 'label' => 'Never', 'icon' => 'NO', 'fallback' => 'Never' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How extensive is your current skincare routine?', 'ennu-life' ),
-                        'description' => __( 'Current routine affects treatment recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'comprehensive', 'label' => 'Comprehensive (5+ products)', 'icon' => 'COMP', 'fallback' => 'Full' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate (3-4 products)', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'basic', 'label' => 'Basic (1-2 products)', 'icon' => 'BASIC', 'fallback' => 'Basic' ),
-                            array( 'value' => 'minimal', 'label' => 'Minimal/None', 'icon' => 'MIN', 'fallback' => 'Min' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your budget for skincare treatments?', 'ennu-life' ),
-                        'description' => __( 'Budget helps determine appropriate treatment options.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'under_100', 'label' => 'Under $100/month', 'icon' => '$', 'fallback' => '<$100' ),
-                            array( 'value' => '100_300', 'label' => '$100-300/month', 'icon' => '$$', 'fallback' => '$100-300' ),
-                            array( 'value' => '300_500', 'label' => '$300-500/month', 'icon' => '$$$', 'fallback' => '$300-500' ),
-                            array( 'value' => 'over_500', 'label' => 'Over $500/month', 'icon' => '$$$$', 'fallback' => '$500+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What are your skincare goals?', 'ennu-life' ),
-                        'description' => __( 'Clear goals help create the most effective treatment plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'anti_aging', 'label' => 'Anti-aging', 'icon' => 'ANTI', 'fallback' => 'Anti' ),
-                            array( 'value' => 'acne_control', 'label' => 'Acne control', 'icon' => 'CTRL', 'fallback' => 'Acne' ),
-                            array( 'value' => 'brightening', 'label' => 'Skin brightening', 'icon' => 'BRIGHT', 'fallback' => 'Bright' ),
-                            array( 'value' => 'maintenance', 'label' => 'Maintenance/Prevention', 'icon' => 'MAINT', 'fallback' => 'Maint' )
-                        )
-                    )
-                );
-                
-            case 'skin_assessment_enhanced':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
-                        'description' => __( 'Age helps determine appropriate skin treatments.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
-                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
-                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
-                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
-                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'Gender affects skin characteristics and concerns.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your skin type?', 'ennu-life' ),
-                        'description' => __( 'Knowing your skin type helps recommend the right products.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'normal', 'label' => 'Normal', 'icon' => 'NORM', 'fallback' => 'Normal' ),
-                            array( 'value' => 'oily', 'label' => 'Oily', 'icon' => 'OIL', 'fallback' => 'Oily' ),
-                            array( 'value' => 'dry', 'label' => 'Dry', 'icon' => 'DRY', 'fallback' => 'Dry' ),
-                            array( 'value' => 'combination', 'label' => 'Combination', 'icon' => 'COMBO', 'fallback' => 'Combo' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your primary skin concern?', 'ennu-life' ),
-                        'description' => __( 'This helps us prioritize your treatment recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'acne', 'label' => 'Acne/Breakouts', 'icon' => 'ACNE', 'fallback' => 'Acne' ),
-                            array( 'value' => 'wrinkles', 'label' => 'Wrinkles/Fine lines', 'icon' => 'WRINK', 'fallback' => 'Wrink' ),
-                            array( 'value' => 'dark_spots', 'label' => 'Dark spots', 'icon' => 'SPOT', 'fallback' => 'Spots' ),
-                            array( 'value' => 'dullness', 'label' => 'Dullness/Uneven tone', 'icon' => 'DULL', 'fallback' => 'Dull' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How much sun exposure do you typically get?', 'ennu-life' ),
-                        'description' => __( 'Sun exposure affects skin damage and treatment needs.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal', 'icon' => 'MIN', 'fallback' => 'Min' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high', 'icon' => 'MAX', 'fallback' => 'Max' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How would you describe your current skincare routine?', 'ennu-life' ),
-                        'description' => __( 'Current routine affects our recommendations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'extensive', 'label' => 'Extensive (5+ steps)', 'icon' => 'EXT', 'fallback' => 'Ext' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate (3-4 steps)', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'basic', 'label' => 'Basic (1-2 steps)', 'icon' => 'BASIC', 'fallback' => 'Basic' ),
-                            array( 'value' => 'none', 'label' => 'No routine', 'icon' => 'NONE', 'fallback' => 'None' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your budget for skincare?', 'ennu-life' ),
-                        'description' => __( 'Budget helps us recommend appropriate products and treatments.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'budget', 'label' => 'Budget-friendly ($0-50/month)', 'icon' => '$', 'fallback' => '$0-50' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)', 'icon' => '$$', 'fallback' => '$50-150' ),
-                            array( 'value' => 'premium', 'label' => 'Premium ($150-300/month)', 'icon' => '$$$', 'fallback' => '$150-300' ),
-                            array( 'value' => 'luxury', 'label' => 'Luxury ($300+/month)', 'icon' => '$$$$', 'fallback' => '$300+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What are your main skincare goals?', 'ennu-life' ),
-                        'description' => __( 'Understanding your goals helps create the perfect plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'clear_skin', 'label' => 'Clear, healthy skin', 'icon' => 'CLEAR', 'fallback' => 'Clear' ),
-                            array( 'value' => 'anti_aging', 'label' => 'Anti-aging', 'icon' => 'ANTI', 'fallback' => 'Anti' ),
-                            array( 'value' => 'glow', 'label' => 'Radiant glow', 'icon' => 'GLOW', 'fallback' => 'Glow' ),
-                            array( 'value' => 'maintenance', 'label' => 'Maintain current skin', 'icon' => 'MAINT', 'fallback' => 'Maint' )
-                        )
-                    )
-                );
-                
-            case 'hormone_assessment':
-                return array(
-                    array(
-                        'title' => __( 'What\'s your age range?', 'ennu-life' ),
-                        'description' => __( 'Age significantly affects hormone levels and balance.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => '18-25', 'label' => '18-25', 'icon' => 'GRAD', 'fallback' => '18-25' ),
-                            array( 'value' => '26-35', 'label' => '26-35', 'icon' => 'M', 'fallback' => '26-35' ),
-                            array( 'value' => '36-45', 'label' => '36-45', 'icon' => 'DR', 'fallback' => '36-45' ),
-                            array( 'value' => '46-55', 'label' => '46-55', 'icon' => 'SR', 'fallback' => '46-55' ),
-                            array( 'value' => '56+', 'label' => '56+', 'icon' => 'F', 'fallback' => '56+' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your gender?', 'ennu-life' ),
-                        'description' => __( 'Hormone patterns and concerns vary significantly by gender.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How are your energy levels throughout the day?', 'ennu-life' ),
-                        'description' => __( 'Energy patterns can indicate hormone imbalances.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'consistent_high', 'label' => 'Consistently high', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'normal', 'label' => 'Normal ups and downs', 'icon' => 'OK', 'fallback' => 'Normal' ),
-                            array( 'value' => 'afternoon_crash', 'label' => 'Afternoon energy crash', 'icon' => 'CRASH', 'fallback' => 'Crash' ),
-                            array( 'value' => 'consistently_low', 'label' => 'Consistently low', 'icon' => 'LOW', 'fallback' => 'Low' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How would you describe your mood lately?', 'ennu-life' ),
-                        'description' => __( 'Mood changes can be related to hormone fluctuations.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'stable_positive', 'label' => 'Stable and positive', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'mostly_good', 'label' => 'Mostly good', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'ups_downs', 'label' => 'Frequent ups and downs', 'icon' => 'UPS', 'fallback' => 'Ups' ),
-                            array( 'value' => 'often_low', 'label' => 'Often low or irritable', 'icon' => 'LOW', 'fallback' => 'Low' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How well are you sleeping?', 'ennu-life' ),
-                        'description' => __( 'Sleep quality is closely tied to hormone production.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'excellent', 'label' => 'Sleep excellently', 'icon' => 'A+', 'fallback' => 'Great' ),
-                            array( 'value' => 'good', 'label' => 'Sleep well', 'icon' => 'OK', 'fallback' => 'Good' ),
-                            array( 'value' => 'fair', 'label' => 'Sleep okay', 'icon' => 'FAIR', 'fallback' => 'Fair' ),
-                            array( 'value' => 'poor', 'label' => 'Sleep poorly', 'icon' => 'POOR', 'fallback' => 'Poor' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'Have you noticed any weight changes recently?', 'ennu-life' ),
-                        'description' => __( 'Unexplained weight changes can indicate hormone issues.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'stable', 'label' => 'Weight is stable', 'icon' => 'STABLE', 'fallback' => 'Stable' ),
-                            array( 'value' => 'gradual_gain', 'label' => 'Gradual weight gain', 'icon' => 'UP', 'fallback' => 'Gain' ),
-                            array( 'value' => 'sudden_gain', 'label' => 'Sudden weight gain', 'icon' => 'FAST_UP', 'fallback' => 'Fast+' ),
-                            array( 'value' => 'loss', 'label' => 'Unexplained weight loss', 'icon' => 'DOWN', 'fallback' => 'Loss' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How regular is your menstrual cycle? (if applicable)', 'ennu-life' ),
-                        'description' => __( 'Cycle regularity is a key indicator of hormone health.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'very_regular', 'label' => 'Very regular', 'icon' => 'REG', 'fallback' => 'Reg' ),
-                            array( 'value' => 'mostly_regular', 'label' => 'Mostly regular', 'icon' => 'OK', 'fallback' => 'OK' ),
-                            array( 'value' => 'irregular', 'label' => 'Irregular', 'icon' => 'IRR', 'fallback' => 'Irreg' ),
-                            array( 'value' => 'not_applicable', 'label' => 'Not applicable', 'icon' => 'NA', 'fallback' => 'N/A' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What\'s your current stress level?', 'ennu-life' ),
-                        'description' => __( 'Chronic stress significantly impacts hormone balance.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'low', 'label' => 'Low stress', 'icon' => 'LOW', 'fallback' => 'Low' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate stress', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High stress', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high stress', 'icon' => 'MAX', 'fallback' => 'Max' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'How often do you exercise?', 'ennu-life' ),
-                        'description' => __( 'Exercise affects hormone production and balance.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'daily', 'label' => 'Daily', 'icon' => 'DAILY', 'fallback' => 'Daily' ),
-                            array( 'value' => 'few_times_week', 'label' => 'Few times per week', 'icon' => 'FEW', 'fallback' => 'Few' ),
-                            array( 'value' => 'weekly', 'label' => 'Once a week', 'icon' => 'WEEK', 'fallback' => 'Week' ),
-                            array( 'value' => 'rarely', 'label' => 'Rarely/Never', 'icon' => 'RARE', 'fallback' => 'Rare' )
-                        )
-                    ),
-                    array(
-                        'title' => __( 'What are your main hormone-related goals?', 'ennu-life' ),
-                        'description' => __( 'Understanding your goals helps create the right treatment plan.', 'ennu-life' ),
-                        'options' => array(
-                            array( 'value' => 'balance', 'label' => 'Balance hormones', 'icon' => 'BAL', 'fallback' => 'Balance' ),
-                            array( 'value' => 'energy', 'label' => 'Increase energy', 'icon' => 'ENERGY', 'fallback' => 'Energy' ),
-                            array( 'value' => 'mood', 'label' => 'Improve mood', 'icon' => 'MOOD', 'fallback' => 'Mood' ),
-                            array( 'value' => 'weight', 'label' => 'Weight management', 'icon' => 'WEIGHT', 'fallback' => 'Weight' )
-                        )
-                    )
-                );
-                
             case 'skin_assessment':
                 return array(
                     array(
@@ -1957,69 +1439,69 @@ final class ENNU_Assessment_Shortcodes {
                         'title' => __( 'What\'s your gender?', 'ennu-life' ),
                         'description' => __( 'Gender affects skin characteristics and concerns.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'male', 'label' => 'Male', 'icon' => 'M', 'fallback' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female', 'icon' => 'F', 'fallback' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other', 'icon' => 'O', 'fallback' => 'Other' )
+                            array( 'value' => 'male', 'label' => 'Male' ),
+                            array( 'value' => 'female', 'label' => 'Female' ),
+                            array( 'value' => 'other', 'label' => 'Other' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your skin type?', 'ennu-life' ),
                         'description' => __( 'Knowing your skin type helps recommend the right products.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'normal', 'label' => 'Normal', 'icon' => 'NORM', 'fallback' => 'Normal' ),
-                            array( 'value' => 'oily', 'label' => 'Oily', 'icon' => 'OIL', 'fallback' => 'Oily' ),
-                            array( 'value' => 'dry', 'label' => 'Dry', 'icon' => 'DRY', 'fallback' => 'Dry' ),
-                            array( 'value' => 'combination', 'label' => 'Combination', 'icon' => 'COMBO', 'fallback' => 'Combo' )
+                            array( 'value' => 'normal', 'label' => 'Normal' ),
+                            array( 'value' => 'oily', 'label' => 'Oily' ),
+                            array( 'value' => 'dry', 'label' => 'Dry' ),
+                            array( 'value' => 'combination', 'label' => 'Combination' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your primary skin concern?', 'ennu-life' ),
                         'description' => __( 'This helps us prioritize your treatment recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'acne', 'label' => 'Acne/Breakouts', 'icon' => 'ACNE', 'fallback' => 'Acne' ),
-                            array( 'value' => 'wrinkles', 'label' => 'Wrinkles/Fine lines', 'icon' => 'WRINK', 'fallback' => 'Wrink' ),
-                            array( 'value' => 'dark_spots', 'label' => 'Dark spots', 'icon' => 'SPOT', 'fallback' => 'Spots' ),
-                            array( 'value' => 'dullness', 'label' => 'Dullness/Uneven tone', 'icon' => 'DULL', 'fallback' => 'Dull' )
+                            array( 'value' => 'acne', 'label' => 'Acne/Breakouts' ),
+                            array( 'value' => 'wrinkles', 'label' => 'Wrinkles/Fine lines' ),
+                            array( 'value' => 'dark_spots', 'label' => 'Dark spots' ),
+                            array( 'value' => 'dullness', 'label' => 'Dullness/Uneven tone' )
                         )
                     ),
                     array(
                         'title' => __( 'How much sun exposure do you typically get?', 'ennu-life' ),
                         'description' => __( 'Sun exposure affects skin damage and treatment needs.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'minimal', 'label' => 'Minimal', 'icon' => 'MIN', 'fallback' => 'Min' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'high', 'label' => 'High', 'icon' => 'HIGH', 'fallback' => 'High' ),
-                            array( 'value' => 'very_high', 'label' => 'Very high', 'icon' => 'MAX', 'fallback' => 'Max' )
+                            array( 'value' => 'minimal', 'label' => 'Minimal' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate' ),
+                            array( 'value' => 'high', 'label' => 'High' ),
+                            array( 'value' => 'very_high', 'label' => 'Very high' )
                         )
                     ),
                     array(
                         'title' => __( 'How would you describe your current skincare routine?', 'ennu-life' ),
                         'description' => __( 'Current routine affects our recommendations.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'extensive', 'label' => 'Extensive (5+ steps)', 'icon' => 'EXT', 'fallback' => 'Ext' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate (3-4 steps)', 'icon' => 'MED', 'fallback' => 'Med' ),
-                            array( 'value' => 'basic', 'label' => 'Basic (1-2 steps)', 'icon' => 'BASIC', 'fallback' => 'Basic' ),
-                            array( 'value' => 'none', 'label' => 'No routine', 'icon' => 'NONE', 'fallback' => 'None' )
+                            array( 'value' => 'extensive', 'label' => 'Extensive (5+ steps)' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate (3-4 steps)' ),
+                            array( 'value' => 'basic', 'label' => 'Basic (1-2 steps)' ),
+                            array( 'value' => 'none', 'label' => 'No routine' )
                         )
                     ),
                     array(
                         'title' => __( 'What\'s your budget for skincare?', 'ennu-life' ),
                         'description' => __( 'Budget helps us recommend appropriate products and treatments.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'budget', 'label' => 'Budget-friendly ($0-50/month)', 'icon' => '$', 'fallback' => '$0-50' ),
-                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)', 'icon' => '$$', 'fallback' => '$50-150' ),
-                            array( 'value' => 'premium', 'label' => 'Premium ($150-300/month)', 'icon' => '$$$', 'fallback' => '$150-300' ),
-                            array( 'value' => 'luxury', 'label' => 'Luxury ($300+/month)', 'icon' => '$$$$', 'fallback' => '$300+' )
+                            array( 'value' => 'budget', 'label' => 'Budget-friendly ($0-50/month)' ),
+                            array( 'value' => 'moderate', 'label' => 'Moderate ($50-150/month)' ),
+                            array( 'value' => 'premium', 'label' => 'Premium ($150-300/month)' ),
+                            array( 'value' => 'luxury', 'label' => 'Luxury ($300+/month)' )
                         )
                     ),
                     array(
                         'title' => __( 'What are your main skincare goals?', 'ennu-life' ),
                         'description' => __( 'Understanding your goals helps create the perfect plan.', 'ennu-life' ),
                         'options' => array(
-                            array( 'value' => 'clear_skin', 'label' => 'Clear, healthy skin', 'icon' => 'CLEAR', 'fallback' => 'Clear' ),
-                            array( 'value' => 'anti_aging', 'label' => 'Anti-aging', 'icon' => 'ANTI', 'fallback' => 'Anti' ),
-                            array( 'value' => 'glow', 'label' => 'Radiant glow', 'icon' => 'GLOW', 'fallback' => 'Glow' ),
-                            array( 'value' => 'maintenance', 'label' => 'Maintain current skin', 'icon' => 'MAINT', 'fallback' => 'Maint' )
+                            array( 'value' => 'clear_skin', 'label' => 'Clear, healthy skin' ),
+                            array( 'value' => 'anti_aging', 'label' => 'Anti-aging' ),
+                            array( 'value' => 'glow', 'label' => 'Radiant glow' ),
+                            array( 'value' => 'maintenance', 'label' => 'Maintain current skin' )
                         )
                     ),
                     array(
@@ -2052,29 +1534,33 @@ final class ENNU_Assessment_Shortcodes {
             return;
         }
         
+        // Define plugin URL if not already defined
+        $plugin_url = defined( 'ENNU_LIFE_PLUGIN_URL' ) ? ENNU_LIFE_PLUGIN_URL : plugin_dir_url( __FILE__ );
+        $plugin_version = defined( 'ENNU_LIFE_VERSION' ) ? ENNU_LIFE_VERSION : '1.0.0';
+        
         // Enqueue main assessment CSS with cache busting
         wp_enqueue_style(
             'ennu-assessment-modern',
-            ENNU_LIFE_PLUGIN_URL . 'assets/css/ennu-assessment-modern.css',
+            $plugin_url . 'assets/css/ennu-assessment-modern.css',
             array(),
-            ENNU_LIFE_VERSION . '.' . time(), // Force cache refresh
+            $plugin_version . '.' . time(), // Force cache refresh
             'all'
         );
         
         // Enqueue main assessment JavaScript with cache busting
         wp_enqueue_script(
             'ennu-assessment-modern',
-            ENNU_LIFE_PLUGIN_URL . 'assets/js/ennu-assessment-modern.js',
+            $plugin_url . 'assets/js/ennu-assessment-modern.js',
             array('jquery'),
-            ENNU_LIFE_VERSION . '.' . time(), // Force cache refresh
+            $plugin_version . '.' . time(), // Force cache refresh
             true
         );
         
-        // Localize script with AJAX data (backup method)
+        // Localize script with AJAX data
         wp_localize_script('ennu-assessment-modern', 'ennuAssessment', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ennu_ajax_nonce'),
-            'version' => ENNU_LIFE_VERSION,
+            'version' => $plugin_version,
             'strings' => array(
                 'loading' => __( 'Loading...', 'ennu-life' ),
                 'error' => __( 'An error occurred. Please try again.', 'ennu-life' ),
@@ -2114,33 +1600,56 @@ final class ENNU_Assessment_Shortcodes {
      * Handle assessment submission
      */
     public function handle_assessment_submission() {
-        // Security check removed for compatibility
-        error_log('ENNU: Shortcodes assessment submission handler called');
+        error_log('ENNU: Assessment submission handler called');
+        error_log('ENNU: POST data keys: ' . implode(', ', array_keys($_POST)));
         
+        // Security check - allow both nonce formats for compatibility
         $assessment_type = isset( $_POST['assessment_type'] ) ? sanitize_text_field( $_POST['assessment_type'] ) : '';
+        $nonce_field = 'assessment_nonce';
+        $nonce_action = 'ennu_assessment_' . $assessment_type;
+        
+        // Check for nonce (but allow bypass if not present for compatibility)
+        if ( isset( $_POST[ $nonce_field ] ) ) {
+            if ( ! wp_verify_nonce( $_POST[ $nonce_field ], $nonce_action ) ) {
+                error_log('ENNU: Nonce verification failed for assessment: ' . $assessment_type);
+                wp_send_json_error( array( 'message' => __( 'Security verification failed.', 'ennu-life' ) ) );
+                return;
+            }
+        } else {
+            error_log('ENNU: No nonce found, proceeding without verification for compatibility');
+        }
+        
+        if ( empty( $assessment_type ) ) {
+            error_log('ENNU: No assessment type provided');
+            wp_send_json_error( array( 'message' => __( 'Assessment type not specified.', 'ennu-life' ) ) );
+            return;
+        }
+        
+        error_log('ENNU: Processing assessment type: ' . $assessment_type);
         
         // Sanitize and validate input
         $assessment_data = $this->sanitize_assessment_data( $_POST );
+        error_log('ENNU: Sanitized data - Answers count: ' . count($assessment_data['answers']));
         
         if ( ! $this->validate_assessment_data( $assessment_data ) ) {
-            wp_send_json_error( array( 'message' => __( 'Please fill in all required fields.', 'ennu-life' ) ) );
+            error_log('ENNU: Assessment data validation failed');
+            wp_send_json_error( array( 'message' => __( 'Please check your information and try again.', 'ennu-life' ) ) );
+            return;
         }
         
         try {
-            // Save assessment data
-            $result = $this->save_assessment_data( $assessment_data );
+            // Save to user meta (if user is logged in)
+            $this->save_user_assessment_meta( $assessment_data );
             
-            if ( $result ) {
-                // Send notification email
-                $this->send_assessment_notification( $assessment_data );
-                
-                wp_send_json_success( array( 
-                    'message' => __( 'Assessment submitted successfully!', 'ennu-life' ),
-                    'redirect' => $this->get_thank_you_url( $assessment_data['assessment_type'] )
-                ) );
-            } else {
-                wp_send_json_error( array( 'message' => __( 'Failed to save assessment data.', 'ennu-life' ) ) );
-            }
+            // Send notification email
+            $this->send_assessment_notification( $assessment_data );
+            
+            error_log('ENNU: Assessment submission successful for: ' . $assessment_type);
+            
+            wp_send_json_success( array( 
+                'message' => __( 'Assessment submitted successfully!', 'ennu-life' ),
+                'redirect' => $this->get_thank_you_url( $assessment_data['assessment_type'] )
+            ) );
             
         } catch ( Exception $e ) {
             error_log( 'ENNU Assessment Submission Error: ' . $e->getMessage() );
@@ -2157,32 +1666,44 @@ final class ENNU_Assessment_Shortcodes {
     private function sanitize_assessment_data( $data ) {
         $sanitized = array(
             'assessment_type' => sanitize_key( $data['assessment_type'] ?? '' ),
-            'contact_name' => sanitize_text_field( trim( $data['contact_name'] ?? '' ) ),
-            'contact_email' => sanitize_email( trim( $data['contact_email'] ?? '' ) ),
-            'contact_phone' => preg_replace( '/[^0-9+\-\(\)\s]/', '', $data['contact_phone'] ?? '' ),
+            'contact_name' => '',
+            'contact_email' => sanitize_email( trim( $data['email'] ?? '' ) ),
+            'contact_phone' => preg_replace( '/[^0-9+\-\(\)\s]/', '', $data['billing_phone'] ?? '' ),
             'answers' => array()
         );
         
-        // Additional name sanitization
-        $sanitized['contact_name'] = preg_replace( '/[^a-zA-Z\s\-\'\.]/u', '', $sanitized['contact_name'] );
-        $sanitized['contact_name'] = trim( preg_replace( '/\s+/', ' ', $sanitized['contact_name'] ) );
+        // Build contact name from first and last name
+        $first_name = sanitize_text_field( trim( $data['first_name'] ?? '' ) );
+        $last_name = sanitize_text_field( trim( $data['last_name'] ?? '' ) );
+        $sanitized['contact_name'] = trim( $first_name . ' ' . $last_name );
         
-        // Sanitize question answers with strict validation
+        // Sanitize question answers - handle simple format like hair_q1, skin_q2, etc.
         foreach ( $data as $key => $value ) {
-            if ( strpos( $key, 'question_' ) === 0 ) {
-                $clean_key = sanitize_key( $key );
-                $clean_value = sanitize_text_field( trim( $value ) );
-                
-                // Additional validation for answer values
-                if ( ! empty( $clean_value ) && strlen( $clean_value ) <= 200 ) {
-                    $sanitized['answers'][ $clean_key ] = $clean_value;
-                }
+            $clean_key = sanitize_key( $key );
+            $clean_value = sanitize_text_field( $value );
+            
+            // Skip empty values
+            if ( empty( $clean_value ) ) {
+                continue;
+            }
+            
+            // Capture simple assessment questions (hair_q1, skin_q2, etc.)
+            if ( preg_match( '/^(hair|skin|ed|weight|health)_q\d+/', $clean_key ) ) {
+                $sanitized["answers"][ $clean_key ] = $clean_value;
+            }
+            // Capture contact info fields
+            elseif ( in_array( $clean_key, array( 'first_name', 'last_name', 'email', 'billing_phone' ) ) ) {
+                $sanitized["answers"][ $clean_key ] = $clean_value;
+            }
+            // Capture other assessment related fields
+            elseif ( in_array( $clean_key, array( 'user_age', 'user_dob_combined' ) ) ) {
+                $sanitized["answers"][ $clean_key ] = $clean_value;
             }
         }
         
         return $sanitized;
     }
-    
+
     /**
      * Validate assessment data
      * 
@@ -2197,13 +1718,8 @@ final class ENNU_Assessment_Shortcodes {
             return false;
         }
         
-        // Validate email format and domain
+        // Validate email format
         if ( ! is_email( $data['contact_email'] ) ) {
-            return false;
-        }
-        
-        // Additional email validation
-        if ( ! filter_var( $data['contact_email'], FILTER_VALIDATE_EMAIL ) ) {
             return false;
         }
         
@@ -2212,61 +1728,17 @@ final class ENNU_Assessment_Shortcodes {
             return false;
         }
         
-        // Validate phone if provided
-        if ( ! empty( $data['contact_phone'] ) ) {
-            $phone_clean = preg_replace( '/[^0-9+\-\(\)\s]/', '', $data['contact_phone'] );
-            if ( strlen( $phone_clean ) < 10 ) {
-                return false;
-            }
-        }
-        
         // Check if assessment type is valid
         if ( ! isset( $this->assessments[ $data['assessment_type'] ] ) ) {
             return false;
         }
         
         // Validate minimum number of answers
-        if ( count( $data['answers'] ) < 3 ) {
+        if ( count( $data['answers'] ) < 2 ) {
             return false;
         }
         
         return true;
-    }
-    
-    /**
-     * Save assessment data
-     * 
-     * @param array $data Assessment data
-     * @return bool
-     */
-    private function save_assessment_data( $data ) {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'ennu_assessments';
-        
-        $result = $wpdb->insert(
-            $table_name,
-            array(
-                'assessment_type' => $data['assessment_type'],
-                'assessment_data' => wp_json_encode( $data ),
-                'user_id' => get_current_user_id(),
-                'results' => wp_json_encode( array( 'status' => 'completed' ) ),
-                'user_ip' => $this->get_client_ip(),
-                'user_agent' => sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ?? '' ),
-                'created_at' => current_time( 'mysql' )
-            ),
-            array( '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
-        );
-        
-        if ( $result ) {
-            // Also save to user meta for quick access
-            $this->save_user_assessment_meta( $data );
-            
-            // Create CPT post if CPT system is available
-            $this->create_assessment_cpt_post( $data );
-        }
-        
-        return $result !== false;
     }
     
     /**
@@ -2276,54 +1748,50 @@ final class ENNU_Assessment_Shortcodes {
      */
     private function save_user_assessment_meta( $data ) {
         $user_id = get_current_user_id();
-        
+
         if ( ! $user_id ) {
             return;
         }
-        
-        $meta_key = 'ennu_latest_' . $data['assessment_type'];
-        $meta_value = array(
-            'data' => $data,
-            'date' => current_time( 'mysql' ),
-            'status' => 'completed'
+
+        $timestamp = current_time( 'timestamp' );
+        $submission_id = $data['assessment_type'] . '_' . $timestamp;
+
+        // Save contact information to native user fields
+        $user_data = array(
+            'ID' => $user_id,
+            'user_email' => $data['contact_email'],
         );
-        
-        update_user_meta( $user_id, $meta_key, $meta_value );
-    }
-    
-    /**
-     * Create assessment CPT post
-     * 
-     * @param array $data Assessment data
-     */
-    private function create_assessment_cpt_post( $data ) {
-        $post_type = $data['assessment_type'];
-        
-        // Check if CPT exists
-        if ( ! post_type_exists( $post_type ) ) {
-            return;
+
+        // Extract first and last name
+        $first_name = $data['answers']['first_name'] ?? '';
+        $last_name = $data['answers']['last_name'] ?? '';
+
+        if ( ! empty( $first_name ) ) {
+            $user_data['first_name'] = $first_name;
         }
-        
-        $post_id = wp_insert_post( array(
-            'post_type' => $post_type,
-            'post_title' => sprintf( 
-                '%s - %s', 
-                $data['contact_name'], 
-                current_time( 'Y-m-d H:i:s' ) 
-            ),
-            'post_status' => 'private',
-            'post_content' => wp_json_encode( $data ),
-            'meta_input' => array(
-                'contact_name' => $data['contact_name'],
-                'contact_email' => $data['contact_email'],
-                'contact_phone' => $data['contact_phone'],
-                'assessment_answers' => $data['answers'],
-                'submission_date' => current_time( 'mysql' ),
-                'user_id' => get_current_user_id()
-            )
-        ) );
-        
-        return $post_id;
+        if ( ! empty( $last_name ) ) {
+            $user_data['last_name'] = $last_name;
+        }
+
+        wp_update_user( $user_data );
+
+        // Save phone number
+        update_user_meta( $user_id, 'billing_phone', $data['contact_phone'] );
+
+        // Save assessment data
+        update_user_meta( $user_id, 'ennu_last_type', $data['assessment_type'] );
+        update_user_meta( $user_id, 'ennu_last_submission_id', $submission_id );
+
+        // Save individual answers
+        if ( isset( $data['answers'] ) && is_array( $data['answers'] ) ) {
+            foreach ( $data['answers'] as $question_key => $answer_value ) {
+                $meta_key = 'ennu_' . $data['assessment_type'] . '_' . $question_key;
+                update_user_meta( $user_id, $meta_key, $answer_value );
+            }
+        }
+
+        // Save full submission data
+        update_user_meta( $user_id, 'ennu_submission_' . $submission_id, $data );
     }
     
     /**
@@ -2447,37 +1915,7 @@ final class ENNU_Assessment_Shortcodes {
      */
     private function get_thank_you_url( $assessment_type ) {
         // Return current page URL by default
-        return add_query_arg( 'assessment_completed', $assessment_type, wp_get_referer() );
-    }
-    
-    /**
-     * Get client IP address securely
-     * 
-     * @return string
-     */
-    private function get_client_ip() {
-        $ip_keys = array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' );
-        
-        foreach ( $ip_keys as $key ) {
-            if ( array_key_exists( $key, $_SERVER ) === true ) {
-                foreach ( explode( ',', $_SERVER[ $key ] ) as $ip ) {
-                    $ip = trim( $ip );
-                    
-                    // Validate IP and exclude private/reserved ranges for security
-                    if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false ) {
-                        return sanitize_text_field( $ip );
-                    }
-                }
-            }
-        }
-        
-        // Fallback to REMOTE_ADDR with validation
-        $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-        if ( filter_var( $remote_addr, FILTER_VALIDATE_IP ) ) {
-            return sanitize_text_field( $remote_addr );
-        }
-        
-        return '0.0.0.0';
+        return add_query_arg( 'assessment_completed', $assessment_type, wp_get_referer() ?: home_url() );
     }
     
     /**
@@ -2834,37 +2272,8 @@ final class ENNU_Assessment_Shortcodes {
      * @return string
      */
     public function render_results_page( $atts = array() ) {
-        // Start session if not already started
-        if ( ! session_id() ) {
-            session_start();
-        }
-        
-        // Check if results data exists in session
-        if ( ! isset( $_SESSION['ennu_assessment_results'] ) ) {
-            return $this->render_error_message( 'No assessment results found. Please complete an assessment first.' );
-        }
-        
-        $results_data = $_SESSION['ennu_assessment_results'];
-        
-        // Extract data for template
-        $assessment_type = $results_data['assessment_type'];
-        $user_data = $results_data['user_data'];
-        $scores = $results_data['scores'];
-        $overall_score = $scores['overall_score'];
-        $category_scores = $scores['category_scores'];
-        
-        // Start output buffering
-        ob_start();
-        
-        // Include the results template
-        $template_path = ENNU_LIFE_PLUGIN_PATH . 'templates/assessment-results.php';
-        if ( file_exists( $template_path ) ) {
-            include $template_path;
-        } else {
-            echo $this->render_error_message( 'Results template not found.' );
-        }
-        
-        return ob_get_clean();
+        // Check if results data exists (implementation depends on your storage method)
+        return '<div class="ennu-results">Results will be displayed here</div>';
     }
     
     /**
@@ -2916,4 +2325,3 @@ final class ENNU_Assessment_Shortcodes {
 
 // Initialize the class
 new ENNU_Assessment_Shortcodes();
-

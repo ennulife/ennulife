@@ -3,7 +3,7 @@
  * Plugin Name: ENNU Life - Health Platform
  * Plugin URI: https://ennulife.com/
  * Description: Comprehensive health assessment, booking, and e-commerce platform for modern healthcare practices.
- * Version: 22.4
+ * Version: 22.8
  * Author: ENNU Life Team
  * Author URI: https://ennulife.com/
  * License: GPL v2 or later
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants
 if ( ! defined( 'ENNU_LIFE_VERSION' ) ) {
-    define( 'ENNU_LIFE_VERSION', '22.4' );
+    define( 'ENNU_LIFE_VERSION', '22.8' );
 }
 if ( ! defined( 'ENNU_LIFE_PLUGIN_FILE' ) ) {
     define( 'ENNU_LIFE_PLUGIN_FILE', __FILE__ );
@@ -194,8 +194,6 @@ final class ENNU_Life_Plugin {
             'includes/class-debug-logger.php',
             'includes/class-database.php',
             'includes/class-scoring-system.php',
-            'includes/class-form-handler.php',
-            'includes/class-admin.php',
             'includes/class-assessment-shortcodes.php',
             'includes/class-assessment-cpt.php',
             'includes/class-live-content-manager.php',
@@ -312,7 +310,7 @@ final class ENNU_Life_Plugin {
             }
             
             // Create database tables
-            $instance->create_database_tables();
+            // $instance->create_database_tables();
             
             // Set default options
             $instance->set_default_options();
@@ -838,78 +836,78 @@ final class ENNU_Life_Plugin {
         $labels = array(
             'first_name' => esc_html__( 'First Name', 'ennu-life' ),
             'last_name' => esc_html__( 'Last Name', 'ennu-life' ),
-            'email' => esc_html__( 'Email Address', 'ennu-life' ),
+            'user_email' => esc_html__( 'Email Address', 'ennu-life' ),
             'billing_phone' => esc_html__( 'Phone Number', 'ennu-life' ),
-            'date_of_birth' => esc_html__( 'Date of Birth', 'ennu-life' ),
-            'age' => esc_html__( 'Current Age', 'ennu-life' )
+            'user_dob_combined' => esc_html__( 'Date of Birth', 'ennu-life' ),
+            'user_age' => esc_html__( 'Current Age', 'ennu-life' )
         );
         
         switch ( $assessment_type ) {
             case 'hair_assessment':
                 $labels = array_merge( $labels, array(
-                    'hair_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'hair_concern_type' => esc_html__( 'Hair Concern Type', 'ennu-life' ),
-                    'hair_loss_duration' => esc_html__( 'Duration of Hair Loss', 'ennu-life' ),
-                    'hair_loss_rate' => esc_html__( 'Rate of Hair Loss', 'ennu-life' ),
-                    'hair_family_history' => esc_html__( 'Family History of Hair Loss', 'ennu-life' ),
-                    'hair_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'hair_diet_quality' => esc_html__( 'Diet Quality', 'ennu-life' ),
-                    'hair_previous_treatments' => esc_html__( 'Previous Hair Treatments', 'ennu-life' ),
-                    'hair_treatment_goals' => esc_html__( 'Hair Treatment Goals', 'ennu-life' )
+                    'hair_q1' => esc_html__( 'Gender', 'ennu-life' ),
+                    'hair_q2' => esc_html__( 'Hair Concern Type', 'ennu-life' ),
+                    'hair_q3' => esc_html__( 'Duration of Hair Loss', 'ennu-life' ),
+                    'hair_q4' => esc_html__( 'Rate of Hair Loss', 'ennu-life' ),
+                    'hair_q5' => esc_html__( 'Family History of Hair Loss', 'ennu-life' ),
+                    'hair_q6' => esc_html__( 'Stress Level', 'ennu-life' ),
+                    'hair_q7' => esc_html__( 'Diet Quality', 'ennu-life' ),
+                    'hair_q8' => esc_html__( 'Previous Hair Treatments', 'ennu-life' ),
+                    'hair_q9' => esc_html__( 'Hair Treatment Goals', 'ennu-life' )
                 ) );
                 break;
                 
             case 'ed_treatment_assessment':
                 $labels = array_merge( $labels, array(
-                    'ed_relationship_status' => esc_html__( 'Relationship Status', 'ennu-life' ),
-                    'ed_severity_level' => esc_html__( 'ED Severity Level', 'ennu-life' ),
-                    'ed_symptom_duration' => esc_html__( 'Duration of Symptoms', 'ennu-life' ),
-                    'ed_health_conditions' => esc_html__( 'Related Health Conditions', 'ennu-life' ),
-                    'ed_previous_treatments' => esc_html__( 'Previous ED Treatments', 'ennu-life' ),
-                    'ed_smoking_status' => esc_html__( 'Smoking Status', 'ennu-life' ),
-                    'ed_exercise_frequency' => esc_html__( 'Exercise Frequency', 'ennu-life' ),
-                    'ed_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'ed_treatment_goals' => esc_html__( 'ED Treatment Goals', 'ennu-life' )
+                    'ed_q1' => esc_html__( 'Relationship Status', 'ennu-life' ),
+                    'ed_q2' => esc_html__( 'ED Severity Level', 'ennu-life' ),
+                    'ed_q3' => esc_html__( 'Duration of Symptoms', 'ennu-life' ),
+                    'ed_q4' => esc_html__( 'Related Health Conditions', 'ennu-life' ),
+                    'ed_q5' => esc_html__( 'Previous ED Treatments', 'ennu-life' ),
+                    'ed_q6' => esc_html__( 'Smoking Status', 'ennu-life' ),
+                    'ed_q7' => esc_html__( 'Exercise Frequency', 'ennu-life' ),
+                    'ed_q8' => esc_html__( 'Stress Level', 'ennu-life' ),
+                    'ed_q9' => esc_html__( 'ED Treatment Goals', 'ennu-life' )
                 ) );
                 break;
                 
             case 'weight_loss_assessment':
                 $labels = array_merge( $labels, array(
-                    'weight_current_weight' => esc_html__( 'Current Weight', 'ennu-life' ),
-                    'weight_target_weight' => esc_html__( 'Target Weight', 'ennu-life' ),
-                    'weight_height' => esc_html__( 'Height', 'ennu-life' ),
-                    'weight_dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'weight_exercise_routine' => esc_html__( 'Exercise Routine', 'ennu-life' ),
-                    'weight_medical_conditions' => esc_html__( 'Medical Conditions', 'ennu-life' ),
-                    'weight_medications' => esc_html__( 'Current Medications', 'ennu-life' ),
-                    'weight_loss_history' => esc_html__( 'Weight Loss History', 'ennu-life' ),
-                    'weight_loss_goals' => esc_html__( 'Weight Loss Goals', 'ennu-life' )
+                    'weight_q1' => esc_html__( 'Current Weight', 'ennu-life' ),
+                    'weight_q2' => esc_html__( 'Target Weight', 'ennu-life' ),
+                    'weight_q3' => esc_html__( 'Height', 'ennu-life' ),
+                    'weight_q4' => esc_html__( 'Dietary Habits', 'ennu-life' ),
+                    'weight_q5' => esc_html__( 'Exercise Routine', 'ennu-life' ),
+                    'weight_q6' => esc_html__( 'Medical Conditions', 'ennu-life' ),
+                    'weight_q7' => esc_html__( 'Current Medications', 'ennu-life' ),
+                    'weight_q8' => esc_html__( 'Weight Loss History', 'ennu-life' ),
+                    'weight_q9' => esc_html__( 'Weight Loss Goals', 'ennu-life' )
                 ) );
                 break;
                 
             case 'health_assessment':
                 $labels = array_merge( $labels, array(
-                    'health_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'health_current_concerns' => esc_html__( 'Current Health Concerns', 'ennu-life' ),
-                    'health_medical_history' => esc_html__( 'Medical History', 'ennu-life' ),
-                    'health_medications' => esc_html__( 'Current Medications', 'ennu-life' ),
-                    'health_dietary_habits' => esc_html__( 'Dietary Habits', 'ennu-life' ),
-                    'health_exercise_routine' => esc_html__( 'Exercise Routine', 'ennu-life' ),
-                    'health_sleep_quality' => esc_html__( 'Sleep Quality', 'ennu-life' ),
-                    'health_stress_level' => esc_html__( 'Stress Level', 'ennu-life' ),
-                    'health_wellness_goals' => esc_html__( 'Health & Wellness Goals', 'ennu-life' )
+                    'health_q1' => esc_html__( 'Gender', 'ennu-life' ),
+                    'health_q2' => esc_html__( 'Current Health Concerns', 'ennu-life' ),
+                    'health_q3' => esc_html__( 'Medical History', 'ennu-life' ),
+                    'health_q4' => esc_html__( 'Current Medications', 'ennu-life' ),
+                    'health_q5' => esc_html__( 'Dietary Habits', 'ennu-life' ),
+                    'health_q6' => esc_html__( 'Exercise Routine', 'ennu-life' ),
+                    'health_q7' => esc_html__( 'Sleep Quality', 'ennu-life' ),
+                    'health_q8' => esc_html__( 'Stress Level', 'ennu-life' ),
+                    'health_q9' => esc_html__( 'Health & Wellness Goals', 'ennu-life' )
                 ) );
                 break;
                 
             case 'skin_assessment':
                 $labels = array_merge( $labels, array(
-                    'skin_gender' => esc_html__( 'Gender', 'ennu-life' ),
-                    'skin_type' => esc_html__( 'Skin Type', 'ennu-life' ),
-                    'skin_primary_concern' => esc_html__( 'Primary Skin Concern', 'ennu-life' ),
-                    'skin_sun_exposure' => esc_html__( 'Sun Exposure Level', 'ennu-life' ),
-                    'skin_current_routine' => esc_html__( 'Current Skincare Routine', 'ennu-life' ),
-                    'skin_budget_range' => esc_html__( 'Skincare Budget Range', 'ennu-life' ),
-                    'skin_treatment_goals' => esc_html__( 'Skincare Treatment Goals', 'ennu-life' )
+                    'skin_q1' => esc_html__( 'Gender', 'ennu-life' ),
+                    'skin_q2' => esc_html__( 'Skin Type', 'ennu-life' ),
+                    'skin_q3' => esc_html__( 'Primary Skin Concern', 'ennu-life' ),
+                    'skin_q4' => esc_html__( 'Sun Exposure Level', 'ennu-life' ),
+                    'skin_q5' => esc_html__( 'Current Skincare Routine', 'ennu-life' ),
+                    'skin_q6' => esc_html__( 'Skincare Budget Range', 'ennu-life' ),
+                    'skin_q7' => esc_html__( 'Skincare Treatment Goals', 'ennu-life' )
                 ) );
                 break;
                 

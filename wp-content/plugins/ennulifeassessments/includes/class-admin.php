@@ -238,11 +238,11 @@ class ENNU_Admin {
         $clean_assessment_type = str_replace('-', '_', $assessment_type);
         $meta_prefix = 'ennu_' . $clean_assessment_type . '_';
         $all_meta = get_user_meta($user_id);
-        
+
         // Enhanced debugging for field retrieval
         error_log("ENNU Admin Debug: Looking for fields with prefix: " . $meta_prefix);
         error_log("ENNU Admin Debug: Total user meta fields: " . count($all_meta));
-        
+
         // Find all ENNU-related fields for debugging
         $ennu_fields = array();
         foreach ($all_meta as $key => $value) {
@@ -251,29 +251,32 @@ class ENNU_Admin {
             }
         }
         error_log("ENNU Admin Debug: Found ENNU fields: " . print_r(array_keys($ennu_fields), true));
-        
+
         $assessment_fields = array();
         foreach ($all_meta as $key => $value) {
-            if (strpos($key, $meta_prefix) === 0 && !strpos($key, '_date') && !strpos($key, '_label') && !strpos($key, '_completion_status') && !strpos($key, '_submission_date') && !strpos($key, '_version')) {
-                $field_key = str_replace($meta_prefix, '', $key);
-                $field_value = is_array($value) ? $value[0] : $value;
-                
-                // Skip empty values
-                if (empty($field_value)) {
-                    continue;
+            // Check for both new simple IDs and native contact IDs
+            if (strpos($key, $meta_prefix) === 0 || in_array($key, ['first_name', 'last_name', 'user_email', 'billing_phone', 'user_dob_month', 'user_dob_day', 'user_dob_year', 'user_dob_combined', 'user_age'])) {
+                // Exclude specific meta keys that are not direct assessment questions
+                if (!strpos($key, '_date') && !strpos($key, '_label') && !strpos($key, '_completion_status') && !strpos($key, '_submission_date') && !strpos($key, '_version')) {
+                    $field_key = str_replace($meta_prefix, '', $key);
+                    $field_value = is_array($value) ? $value[0] : $value;
+
+                    // Skip empty values
+                    if (empty($field_value)) {
+                        continue;
+                    }
+
+                    $assessment_fields[$field_key] = array(
+                        'value' => $field_value,
+                        'date' => get_user_meta($user_id, $key . '_date', true),
+                        'label' => get_user_meta($user_id, $key . '_label', true),
+                        'meta_key' => $key
+                    );
+
+                    error_log("ENNU Admin Debug: Found field: " . $key . " = " . $field_value);
                 }
-                
-                $assessment_fields[$field_key] = array(
-                    'value' => $field_value,
-                    'date' => get_user_meta($user_id, $key . '_date', true),
-                    'label' => get_user_meta($user_id, $key . '_label', true),
-                    'meta_key' => $key
-                );
-                
-                error_log("ENNU Admin Debug: Found field: " . $key . " = " . $field_value);
             }
         }
-        
         if (!empty($assessment_fields)) {
             echo '<tr><th colspan="2"><h4>' . esc_html($assessment_label) . '</h4></th></tr>';
             
@@ -300,7 +303,7 @@ class ENNU_Admin {
                 $date = !empty($field_data['date']) ? ' (Updated: ' . date('M j, Y g:i A', strtotime($field_data['date'])) . ')' : '';
                 
                 echo '<tr>';
-                echo '<th><label for="' . esc_attr($field_data['meta_key']) . '">' . esc_html($label) . ' (ID: ' . esc_html($field_key) . ')' . $date . '</label></th>';
+                echo '<th><label for="' . esc_attr($field_data["meta_key"]) . '">' . esc_html($label) . ' (ID: ' . esc_html($field_key) . ')' . $date . '</label></th>';
                 echo '<td>';
                 echo '<input type="text" id="' . esc_attr($field_data['meta_key']) . '" name="' . esc_attr($field_data['meta_key']) . '" value="' . esc_attr($field_data['value']) . '" class="regular-text" readonly />';
                 echo '</td>';
