@@ -698,7 +698,7 @@ final class ENNU_Assessment_Shortcodes {
                     'fields'      => array(
                         array( 'name' => 'billing_phone', 'label' => 'Mobile Number', 'type' => 'tel' )
                     ),
-                    'button_text' => 'View My Assessment Results'
+                    'button_text' => 'Create My Account'
                 )
             );
             case 'hair_assessment':
@@ -956,8 +956,7 @@ final class ENNU_Assessment_Shortcodes {
                         'description' => __( 'Weight loss strategies can vary by gender.', 'ennu-life' ),
                         'options' => array(
                             array( 'value' => 'male', 'label' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other' )
+                            array( 'value' => 'female', 'label' => 'Female' )
                         )
                     ),
                     array(
@@ -1091,8 +1090,7 @@ final class ENNU_Assessment_Shortcodes {
                         'description' => __( 'Gender affects health risks and screening recommendations.', 'ennu-life' ),
                         'options' => array(
                             array( 'value' => 'male', 'label' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other' )
+                            array( 'value' => 'female', 'label' => 'Female' )
                         )
                     ),
                     array(
@@ -1206,8 +1204,7 @@ final class ENNU_Assessment_Shortcodes {
                         'description' => __( 'Gender affects skin characteristics and concerns.', 'ennu-life' ),
                         'options' => array(
                             array( 'value' => 'male', 'label' => 'Male' ),
-                            array( 'value' => 'female', 'label' => 'Female' ),
-                            array( 'value' => 'other', 'label' => 'Other' )
+                            array( 'value' => 'female', 'label' => 'Female' )
                         )
                     ),
                     array(

@@ -1,8 +1,0 @@
-assessment_type: hair_assessment
-contact_name: John Doe!@#
-contact_email: john.doe@example.com
-contact_phone: +1 (555) 123-4567
-answers: {'q1.month': '01', 'q1.day': '15', 'q1.year': '1990', 'q1.dob_combined': '1990-01-15', 'q2': 'male', 'q3': 'thinning'}
-dob_month: 05
-dob_day: 20
-dob_year: 1985

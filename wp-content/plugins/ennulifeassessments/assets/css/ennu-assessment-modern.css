@@ -3,10 +3,27 @@
  * Beautiful click-to-select design with icons and animations
  */
 
+div#overvideo button.nav-btn.prev-btn {
+    color: #fff !important;
+}
+
+div#overvideo p, div#overvideo h2,.progress-text,span.calculated-age,span.age-unit,.current-age-display {
+    color: #fff !important;
+}
+
+div#overvideo {
+    padding: 90px 0 0;
+}
+
+div#overvideo .ennu-answer-option.selected {
+    background: #4b96dc !important;
+    color: #fff !important;
+    border-color: #045ec1 !important;
+}
 .ennu-validation-error {position:absolute;left:10%;}
 
 .field-group {
-    max-width: 33%;
+    /* max-width: 33%; */
     /* float: left; */
     /* clear: right; */
 }
@@ -44,7 +61,7 @@ button.nav-btn.next-btn.main-next:hover {
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
-    margin: 20px auto 0 !important;
+    margin: 10px auto 0 !important;
 }
 
 body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="password"], .post-password-form body:not(.rtl) input[type="password"] {
@@ -64,7 +81,8 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
  }
  
  label.ennu-answer-option.option-card {
-     min-width: 150px !important;
+     min-width: 240px;
+     min-height: 60px;
  }
  
  .ennu-assessment {background: transparent !important;box-shadow: none !important;max-width: 100% !important;}
@@ -259,14 +277,14 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
  }
  
  .question h2 {
-     font-size: 1.28rem;
+     font-size: 2.28rem;
      font-weight: 600;
      color: #333;
      margin-bottom: 4px;
  }
  
  .question p {
-     font-size: 1rem;
+     font-size: 1.2rem;
      color: #666;
      margin-bottom: 9px !important;
      line-height: 1.2;
@@ -326,7 +344,7 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
  
  .option-card span {
      font-weight: 500;
-     font-size: .7rem;
+     font-size: 17px;
  }
  
  .contact-fields {
@@ -353,7 +371,7 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
  .field-group input, .field-group select {
      padding: 0;
      border: 1px solid #e0e0e0 !important;
-     border-radius: 10px !important;
+     border-radius: 4px !important;
      font-size: 0.95rem;
      /* transition: border-color 0.3s ease; */
      border-width: 1px !important;
@@ -481,8 +499,8 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
  /* Responsive Design */
  @media (max-width: 768px) {
      .ennu-assessment {
-         padding: 15px;
-         margin: 10px;
+         padding: 0;
+         margin: 0;
      }
      
      .assessment-title {
@@ -507,9 +525,16 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
          display: flex !important;
          flex-direction: row;
      }
-    .field-group input, .field-group select {
+    .field-group input {
+        min-width: 260px;
+    }
+    .field-group select {
         min-width: 100px;
     }
+.question .contact-info-form {
+    display: flex;
+    flex-direction: column;
+}
  }
  
  
@@ -593,7 +618,7 @@ body:not(.rtl) .form-control, body:not(.rtl) .post-password-form input[type="pas
 
 .ennu-progress-fill {
     height: 100%;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #5398e1 0%, #3c75b1 100%);
     border-radius: 4px;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -698,8 +723,8 @@ input[type="checkbox"] {
 .ennu-answer-option {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 0.5rem 0.5rem;
+    border-radius: 4px;
+    padding: 1rem 0.5rem;
     cursor: pointer;
     transition: all 0.15s ease;
     text-align: center;
@@ -758,8 +783,8 @@ input[type="checkbox"] {
     right: 2px;
     width: 16px;
     height: 16px;
-    background: #836d11;
-    color: white;
+    background: #fefefe;
+    color: #004984;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1045,8 +1070,8 @@ input[type="checkbox"] {
     
     .ennu-answer-option {
         padding: 10px 5px;
-        min-width: 100px !important;
-        max-width: 100px !important;
+        min-width: 190px !important;
+        max-width: 200px !important;
     }
     
     .ennu-answer-icon {
@@ -1131,4 +1156,3 @@ input[type="checkbox"] {
 .ennu-progress-text {
     text-align: center !important;
 }
-
