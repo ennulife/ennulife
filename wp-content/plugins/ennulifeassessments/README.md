@@ -259,7 +259,7 @@ This plugin is proprietary software developed for ENNU Life. All rights reserved
 
 ---
 
-**Developed by**: Manus - World's Greatest WordPress Developer  
+**Developed by**: Luis Escobar
 **Maintained by**: ENNU Life Development Team  
 **Version**: 24.2.0 (Functional with Missing Advanced Features)
 
