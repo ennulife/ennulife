@@ -55,6 +55,7 @@ final class ENNU_Assessment_Shortcodes {
             'welcome_assessment' => array(
                 'title' => __( 'Welcome Assessment', 'ennu-life' ),
                 'description' => __( 'Let\'s get to know you and your health goals.', 'ennu-life' ),
+                'questions' => 6,
                 'theme_color' => '#5A67D8', // Indigo color
             ),
             'hair_assessment' => array(
@@ -408,28 +409,30 @@ final class ENNU_Assessment_Shortcodes {
         
         ob_start();
         ?>
-        <div class="ennu-question-step question <?php echo esc_attr( $active_class ); ?>" 
+        <div class="question-slide <?php echo esc_attr( $active_class ); ?>" 
              data-step="<?php echo esc_attr( $question_number ); ?>" 
              data-question="<?php echo esc_attr( $question_number ); ?>"
              data-question-key="<?php echo esc_attr( $simple_question_id ); ?>"
              data-question-type="<?php echo esc_attr( $question['type'] ?? 'single' ); ?>">
-            <h2><?php echo esc_html( $question['title'] ); ?></h2>
-            <?php if ( ! empty( $question['description'] ) ) : ?>
-                <p><?php echo esc_html( $question['description'] ); ?></p>
-            <?php endif; ?>
+            
+            <div class="question-header">
+                <h2 class="question-title"><?php echo esc_html( $question['title'] ); ?></h2>
+                <?php if ( ! empty( $question['description'] ) ) : ?>
+                    <p class="question-description"><?php echo esc_html( $question['description'] ); ?></p>
+                <?php endif; ?>
+            </div>
             
             <?php if ( isset( $question['type'] ) && $question['type'] === 'dob_dropdowns' ) : ?>
                 <!-- DOB Dropdowns -->
-                <?php if ( ! empty( $question['show_age'] ) ) : ?>
-                    <div class="current-age-display" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                        <span class="age-label" style="font-size: 14px; color: #666; display: block;">Current Age</span>
-                        <span class="calculated-age" style="font-size: 24px; font-weight: bold; color: #333;">--</span>
-                        <span class="age-unit" style="font-size: 14px; color: #666;">years old</span>
-                    </div>
-                <?php endif; ?>
+                <div class="dob-container">
+                    <?php if ( ! empty( $question['show_age'] ) ) : ?>
+                        <div class="dob-age-display">
+                            Current Age: <span class="calculated-age">--</span> years old
+                        </div>
+                    <?php endif; ?>
                 
-                <div class="dob-dropdowns" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="field-group">
+                    <div class="dob-dropdowns">
+                        <div class="dob-field">
                         <label for="<?php echo esc_attr( $simple_question_id ); ?>_month" style="display: block; margin-bottom: 5px; font-weight: 500;">Month</label>
                         <select id="<?php echo esc_attr( $simple_question_id ); ?>_month" 
                                 name="<?php echo esc_attr( $simple_question_id ); ?>_month" 
@@ -451,7 +454,7 @@ final class ENNU_Assessment_Shortcodes {
                         </select>
                     </div>
                     
-                    <div class="field-group">
+                    <div class="dob-field">
                         <label for="<?php echo esc_attr( $simple_question_id ); ?>_day" style="display: block; margin-bottom: 5px; font-weight: 500;">Day</label>
                         <select id="<?php echo esc_attr( $simple_question_id ); ?>_day" 
                                 name="<?php echo esc_attr( $simple_question_id ); ?>_day" 
@@ -464,7 +467,7 @@ final class ENNU_Assessment_Shortcodes {
                         </select>
                     </div>
                     
-                    <div class="field-group">
+                    <div class="dob-field">
                         <label for="<?php echo esc_attr( $simple_question_id ); ?>_year" style="display: block; margin-bottom: 5px; font-weight: 500;">Year</label>
                         <select id="<?php echo esc_attr( $simple_question_id ); ?>_year" 
                                 name="<?php echo esc_attr( $simple_question_id ); ?>_year" 
@@ -496,6 +499,7 @@ final class ENNU_Assessment_Shortcodes {
                        class="calculated-age-field" 
                        id="user_age" 
                        data-question="<?php echo esc_attr( $question_number ); ?>">
+                </div>
                        
             <?php elseif ( isset( $question['type'] ) && $question['type'] === 'contact_info' ) : ?>
                 <!-- Contact Information Form -->
@@ -527,7 +531,7 @@ final class ENNU_Assessment_Shortcodes {
                     error_log( 'ENNU: Auto-populating contact fields for user ' . $current_user->ID . ': ' . $first_name . ' ' . $last_name . ' (' . $email . ') - Phone: ' . $billing_phone );
                 }
                 ?>
-                <div class="contact-info-form" style="max-width: 500px; margin: 0 auto;">
+                <div class="contact-fields">
                     <?php if ( $user_logged_in ) : ?>
                         <div class="user-info-notice" style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 8px; border-left: 4px solid #28a745; font-size: 0.95em;">
                             <p style="margin: 0; color: #155724;">
@@ -556,7 +560,7 @@ final class ENNU_Assessment_Shortcodes {
                             }
                         }
                         ?>
-                        <div class="field-group" style="margin-bottom: 20px;">
+                        <div class="contact-field">
                             <label for="<?php echo esc_attr( $field['name'] ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
                             <input type="<?php echo esc_attr( $field['type'] ); ?>" 
                                    id="<?php echo esc_attr( $field['name'] ); ?>" 
@@ -579,49 +583,48 @@ final class ENNU_Assessment_Shortcodes {
                     $columns = count( $question["options"] );
                 }
                 ?>
-                <div class="options-grid" data-columns="<?php echo esc_attr( $columns ); ?>">
+                <div class="answer-options" data-columns="<?php echo esc_attr( $columns ); ?>">
                     <?php if ( isset( $question["options"] ) && is_array( $question["options"] ) ) : foreach ( $question["options"] as $option ) : ?>
-                        <label class="ennu-answer-option option-card" for="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" data-value="<?php echo esc_attr( $option["value"] ); ?>">
+                        <div class="answer-option">
                             <input type="radio" 
                                    id="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" 
                                    name="<?php echo esc_attr( $simple_question_id ); ?>" 
                                    value="<?php echo esc_attr( $option["value"] ); ?>" 
                                    class="ennu-radio-input"
-                                   data-value="<?php echo esc_attr( $option['value'] ); ?>"
-                                   style="display: none;" />
-                            <span><?php echo esc_html( $option["label"] ); ?></span>
-                        </label>
+                                   data-value="<?php echo esc_attr( $option['value'] ); ?>" />
+                            <label for="<?php echo esc_attr( $simple_question_id . "_" . $option["value"] ); ?>" data-value="<?php echo esc_attr( $option["value"] ); ?>">
+                                <?php echo esc_html( $option["label"] ); ?>
+                            </label>
+                        </div>
                     <?php endforeach; endif; ?>
                 </div>
             <?php endif; ?>
             
             <!-- Navigation Buttons for each question -->
-            <div class="ennu-navigation" style="margin-top: 30px; text-align: center;">
+            <div class="question-navigation">
+                <?php if ( $question_number > 1 ) : ?>
+                    <button type="button" class="nav-button prev">← Previous</button>
+                <?php else : ?>
+                    <div style="width: 120px;"></div>
+                <?php endif; ?>
+                
                 <?php 
-                // Only show Next button for DOB dropdowns and contact info, not for regular radio buttons
-                //$show_next_button = isset( $question['type'] ) && ( $question['type'] === 'dob_dropdowns' || $question['type'] === 'contact_info' );
-                $show_next_button = isset( $question['type'] ) && in_array($question['type'], ['dob_dropdowns', 'contact_info', 'multiselect']);
+                // Check if this is the last question
+                $total_questions = count($this->get_assessment_questions($assessment_type));
+                $is_last_question = $question_number >= $total_questions;
                 ?>
                 
-                <?php if ( $show_next_button ) : ?>
-                <!-- Next button (only for DOB and contact forms) -->
-                <button type="button" class="nav-btn next-btn main-next" style="background: #667eea; color: white; border: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: block; margin: 0 auto;">
+                <button type="button" class="nav-button next <?php echo $is_last_question ? 'submit' : ''; ?>">
                     <?php 
-                    if ( isset( $question['type'] ) && $question['type'] === 'contact_info' && ! empty( $question['button_text'] ) ) {
+                    if ( $is_last_question && isset( $question['type'] ) && $question['type'] === 'contact_info' && ! empty( $question['button_text'] ) ) {
                         echo esc_html( $question['button_text'] );
+                    } elseif ( $is_last_question ) {
+                        echo 'Create My Account';
                     } else {
                         echo 'Next →';
                     }
                     ?>
                 </button>
-                <?php endif; ?>
-                
-                <!-- Previous button (below Next button, only show after first question) -->
-                <?php if ( $question_number > 1 ) : ?>
-                <button type="button" class="nav-btn prev-btn" style="background: none; border: none; color: #666; text-decoration: underline; font-size: 14px; cursor: pointer; margin-top: <?php echo $show_next_button ? '15px' : '0px'; ?>; display: block;">
-                    ← Previous
-                </button>
-                <?php endif; ?>
             </div>
         </div>
         <?php
@@ -644,7 +647,7 @@ final class ENNU_Assessment_Shortcodes {
             array(
                 'title'       => __( 'What gender were you assigned at birth?', 'ennu-life' ),
                 'description' => __( 'This helps us tailor our recommendations.', 'ennu-life' ),
-                'type'        => 'single', // <-- THIS WAS THE CRITICAL MISSING PIECE
+                'type'        => 'single',
                 'options'     => array(
                     array( 'value' => 'female', 'label' => __( 'Female', 'ennu-life' ) ),
                     array( 'value' => 'male', 'label' => __( 'Male', 'ennu-life' ) )
@@ -661,7 +664,7 @@ final class ENNU_Assessment_Shortcodes {
             array(
                 'title'       => __( 'What are your health goals?', 'ennu-life' ),
                 'description' => __( 'Select all that apply. This helps us personalize your journey.', 'ennu-life' ),
-                'type'        => 'multiselect', // <-- THIS WAS ALSO MISSING
+                'type'        => 'multiselect',
                 'options'     => array(
                     array( 'value' => 'live_longer', 'label' => __( 'Live longer', 'ennu-life' ) ),
                     array( 'value' => 'boost_energy', 'label' => __( 'Boost energy', 'ennu-life' ) ),
@@ -701,7 +704,8 @@ final class ENNU_Assessment_Shortcodes {
                     'button_text' => 'Create My Account'
                 )
             );
-            case 'hair_assessment':
+            
+        case 'hair_assessment':
                 return array(
                     array(
                         'title' => __( 'What\'s your date of birth?', 'ennu-life' ),
@@ -1303,8 +1307,8 @@ final class ENNU_Assessment_Shortcodes {
         
         // Enqueue main assessment CSS with cache busting
         wp_enqueue_style(
-            'ennu-assessment-modern',
-            $plugin_url . 'assets/css/ennu-assessment-modern.css',
+            'ennu-assessment-frontend',
+            $plugin_url . 'assets/css/ennu-frontend-forms.css',
             array(),
             $plugin_version . '.' . time(), // Force cache refresh
             'all'
@@ -1312,15 +1316,15 @@ final class ENNU_Assessment_Shortcodes {
         
         // Enqueue main assessment JavaScript with cache busting
         wp_enqueue_script(
-            'ennu-assessment-modern',
-            $plugin_url . 'assets/js/ennu-assessment-modern.js',
+            'ennu-assessment-frontend',
+            $plugin_url . 'assets/js/ennu-frontend-forms.js',
             array('jquery'),
             $plugin_version . '.' . time(), // Force cache refresh
             true
         );
         
         // Localize script with AJAX data
-        wp_localize_script('ennu-assessment-modern', 'ennuAssessment', array(
+        wp_localize_script('ennu-assessment-frontend', 'ennuAssessment', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ennu_ajax_nonce'),
             'version' => $plugin_version,
